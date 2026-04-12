@@ -110,3 +110,88 @@ Portee M1 implementee:
 - Ils preparent naturellement les modules suivants:
 	- M2 (reservations et conflits) pourra reutiliser les memes services + repositories.
 	- M4 (notifications) pourra etre ajoute sans casser le coeur metier de M1.
+
+## M2 - Reservation et gestion des conflits
+
+Portee M2 implementee:
+- Creation de reservation
+- Detection de conflits sur creneaux
+- Mise en liste d'attente automatique (waitlist)
+- Annulation avec politique configurable
+
+### Pattern 5 - Strategy Pattern (politique d'annulation)
+
+- Emplacement:
+	- app/domain/cancellation_policies.py
+	- app/api/m2_routes.py
+	- app/application/m2_services.py
+- Probleme resolu:
+	- Changer la regle d'annulation sans modifier le service de reservation.
+- Pourquoi ce pattern:
+	- `FlexibleCancellationPolicy` et `Strict24hCancellationPolicy` encapsulent chacune une regle.
+	- Le service consomme l'abstraction `CancellationPolicy`.
+- Alternatives considerees:
+	- `if/else` dans le service selon un flag: plus rapide au debut, mais moins extensible.
+
+### Pattern 6 - State (etat de reservation)
+
+- Emplacement:
+	- app/domain/models.py (`ReservationStatus`)
+	- app/application/m2_services.py
+- Probleme resolu:
+	- Encadrer clairement le cycle de vie d'une reservation (CONFIRMED, WAITLISTED, CANCELLED).
+- Pourquoi ce pattern:
+	- Les transitions sont explicites et testables (ex: annulation puis promotion d'un element en attente).
+- Alternatives considerees:
+	- Boolens multiples (`is_cancelled`, `is_waitlisted`): plus ambigu et source d'incoherence.
+
+### Pattern 7 - Queue-like Waitlist Policy
+
+- Emplacement:
+	- app/application/m2_services.py (`_promote_waitlist`)
+	- app/infrastructure/repositories.py (tri par `created_at`)
+- Probleme resolu:
+	- Determiner quel element en attente doit etre promu quand une reservation confirmee est annulee.
+- Pourquoi ce pattern:
+	- Les reservations waitlist sont traitees dans l'ordre de creation pour garder un comportement previsible.
+- Alternatives considerees:
+	- Priorite manuelle ou score complexe: non necessaire pour M2.
+
+## Principes SOLID appliques dans M2
+
+### SRP - Single Responsibility Principle
+
+- Application:
+	- `m2_services.py` contient les regles metier de reservation et conflits.
+	- `m2_routes.py` adapte uniquement la couche HTTP.
+	- `SQLiteReservationRepository` gere uniquement la persistence des reservations.
+
+### OCP - Open/Closed Principle
+
+- Application:
+	- Ajout de nouvelles politiques d'annulation possible en implementant `CancellationPolicy`.
+	- Service inchangé pour introduire une nouvelle strategie.
+
+### LSP - Liskov Substitution Principle
+
+- Application:
+	- Toute implementation de `CancellationPolicy` est interchangeable dans `cancel_reservation`.
+	- Toute implementation de `ReservationRepository` respectant le contrat fonctionne avec le service.
+
+### ISP - Interface Segregation Principle
+
+- Application:
+	- `ReservationRepository` expose un contrat specifique a M2, sans imposer des methodes M1.
+	- Les clients de M1 ne dependent pas des operations de reservation.
+
+### DIP - Dependency Inversion Principle
+
+- Application:
+	- `ReservationService` depend des abstractions (`PlateauRepository`, `DisponibiliteRepository`, `ReservationRepository`).
+	- Les details SQLite restent confines a la couche infrastructure.
+
+## Pourquoi ces choix pour M2
+
+- Le module M2 introduit des regles metier evolutives (conflits, annulation, liste d'attente).
+- Les patterns Strategy et State rendent ces regles lisibles et extensibles.
+- Cette base permet de brancher M4 (notifications) sans modifier le coeur decisionnel de M2.
