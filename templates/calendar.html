@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendrier - Reservation Sportive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/calendar.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">RS</span>
+        <span class="brand-text">Reservation Sportive</span>
+      </div>
+      <nav class="sport-tabs" id="sportTabs"></nav>
+      <div class="top-actions">
+        <button id="todayBtn" class="btn ghost">Aujourd'hui</button>
+        <input id="dateInput" type="date" />
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="calendar-panel">
+        <div class="calendar-header">
+          <h1>Planning des plateaux</h1>
+          <p id="subtitle">Chargement...</p>
+        </div>
+        <div class="calendar-wrap" id="calendarWrap">
+          <div class="time-column" id="timeColumn"></div>
+          <div class="lanes" id="lanes"></div>
+        </div>
+      </section>
+
+      <aside class="booking-panel">
+        <h2>Nouvelle reservation</h2>
+        <form id="bookingForm">
+          <label>Utilisateur
+            <input type="text" name="utilisateur" placeholder="Nom utilisateur" required />
+          </label>
+          <label>Plateau
+            <select name="plateau_id" id="plateauSelect" required></select>
+          </label>
+          <label>Date
+            <input type="date" name="date_reservation" id="formDate" required />
+          </label>
+          <div class="grid2">
+            <label>Debut
+              <input type="time" name="debut" required />
+            </label>
+            <label>Fin
+              <input type="time" name="fin" required />
+            </label>
+          </div>
+          <button class="btn primary" type="submit">Creer la reservation</button>
+        </form>
+
+        <div class="legend">
+          <h3>Legende</h3>
+          <p><span class="dot confirmed"></span> Confirmee</p>
+          <p><span class="dot waitlisted"></span> Liste d'attente</p>
+          <p><span class="dot cancelled"></span> Annulee</p>
+        </div>
+
+        <div id="flash" class="flash" role="status" aria-live="polite"></div>
+      </aside>
+    </main>
+
+    <script src="/static/js/calendar.js" defer></script>
+  </body>
+</html>
