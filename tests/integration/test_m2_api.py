@@ -15,6 +15,11 @@ def _next_weekday(target_weekday: int) -> date:
     return today + timedelta(days=days_ahead)
 
 
+def _weekday_name(value: date) -> str:
+    names = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+    return names[value.weekday()]
+
+
 def test_m2_reservation_conflict_waitlist_and_promotion() -> None:
     client = TestClient(app)
 
@@ -109,3 +114,80 @@ def test_m2_reservation_rejects_outside_availability() -> None:
         },
     )
     assert invalid_res.status_code == 409
+
+
+def test_m2_cancel_strict_24h_rejects_short_notice() -> None:
+    client = TestClient(app)
+
+    create_plateau = client.post(
+        "/m1/plateaux",
+        json={
+            "nom": "Terrain Strict Refus",
+            "type_sport": "Soccer",
+            "capacite": 22,
+            "emplacement": "Zone D",
+        },
+    )
+    assert create_plateau.status_code == 201
+    plateau_id = create_plateau.json()["id"]
+
+    today = date.today()
+    add_dispo = client.post(
+        f"/m1/plateaux/{plateau_id}/disponibilites",
+        json={"jour": _weekday_name(today), "creneau": {"debut": "00:00:00", "fin": "23:59:00"}},
+    )
+    assert add_dispo.status_code == 201
+
+    create_res = client.post(
+        "/m2/reservations",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "strict_refus",
+            "date_reservation": today.isoformat(),
+            "creneau": {"debut": "23:00:00", "fin": "23:30:00"},
+        },
+    )
+    assert create_res.status_code == 201
+    reservation_id = create_res.json()["id"]
+
+    cancel_response = client.post(f"/m2/reservations/{reservation_id}/cancel?policy=STRICT_24H")
+    assert cancel_response.status_code == 409
+
+
+def test_m2_cancel_strict_24h_allows_early_cancellation() -> None:
+    client = TestClient(app)
+
+    create_plateau = client.post(
+        "/m1/plateaux",
+        json={
+            "nom": "Terrain Strict OK",
+            "type_sport": "Soccer",
+            "capacite": 22,
+            "emplacement": "Zone E",
+        },
+    )
+    assert create_plateau.status_code == 201
+    plateau_id = create_plateau.json()["id"]
+
+    future_day = date.today() + timedelta(days=3)
+    add_dispo = client.post(
+        f"/m1/plateaux/{plateau_id}/disponibilites",
+        json={"jour": _weekday_name(future_day), "creneau": {"debut": "08:00:00", "fin": "20:00:00"}},
+    )
+    assert add_dispo.status_code == 201
+
+    create_res = client.post(
+        "/m2/reservations",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "strict_ok",
+            "date_reservation": future_day.isoformat(),
+            "creneau": {"debut": "10:00:00", "fin": "11:00:00"},
+        },
+    )
+    assert create_res.status_code == 201
+    reservation_id = create_res.json()["id"]
+
+    cancel_response = client.post(f"/m2/reservations/{reservation_id}/cancel?policy=STRICT_24H")
+    assert cancel_response.status_code == 200
+    assert cancel_response.json()["statut"] == "CANCELLED"
