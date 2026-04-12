@@ -1,10 +1,112 @@
 # PATTERNS
 
-Ce fichier sera complete progressivement pendant l'implementation.
+Ce document decrit les patterns et principes SOLID appliques pendant le module M1.
 
-## Format recommande
-- Pattern:
+## M1 - Gestion des plateaux
+
+Portee M1 implementee:
+- CRUD des plateaux sportifs
+- Definition des creneaux horaires
+- Gestion des disponibilites par jour et plage horaire
+
+### Pattern 1 - Repository Pattern
+
 - Emplacement:
+	- app/domain/repositories.py
+	- app/infrastructure/repositories.py
 - Probleme resolu:
+	- Decoupler la logique metier de la persistence (SQLite aujourd'hui, autre source demain).
 - Pourquoi ce pattern:
+	- La couche application manipule des abstractions (interfaces) et non du SQL direct.
+	- Les tests unitaires peuvent utiliser des repositories en memoire sans base de donnees.
 - Alternatives considerees:
+	- SQL direct dans les services: plus rapide au debut, mais fort couplage et tests plus difficiles.
+	- Active Record: pratique, mais moins adapte pour separer clairement domaine et infrastructure dans ce projet de cours.
+
+### Pattern 2 - Service Layer (Application Service)
+
+- Emplacement:
+	- app/application/m1_services.py
+- Probleme resolu:
+	- Centraliser les regles metier du module M1 (validation existence, conflit de creneaux, orchestrations CRUD).
+- Pourquoi ce pattern:
+	- Evite de mettre la logique metier dans les endpoints API ou dans les repositories.
+	- Rend la logique facilement testable en isolation.
+- Alternatives considerees:
+	- Mettre la logique dans les routes FastAPI: simple initialement, mais devient vite difficile a maintenir.
+	- Mettre la logique dans la couche repository: melange metier + acces donnees.
+
+### Pattern 3 - Dependency Injection (composition manuelle)
+
+- Emplacement:
+	- app/main.py
+	- app/api/m1_routes.py
+- Probleme resolu:
+	- Fournir les dependances (services/repos) sans que les routes creent elles-memes les objets techniques.
+- Pourquoi ce pattern:
+	- Simplifie le remplacement d'implementations (ex: in-memory pour tests, SQLite en production).
+	- Facilite la lisibilite de l'architecture et la testabilite.
+- Alternatives considerees:
+	- Instancier partout dans les endpoints: plus de duplication, couplage fort.
+	- Conteneur DI externe: possible, mais surdimensionne pour la taille actuelle du module.
+
+### Pattern 4 - Value Object
+
+- Emplacement:
+	- app/domain/models.py (Creneau)
+- Probleme resolu:
+	- Representer un intervalle horaire avec invariants metier (debut < fin) dans un objet immuable.
+- Pourquoi ce pattern:
+	- Validation metier faite a la creation, donc etat invalide impossible a propager.
+	- Reutilisable dans Disponibilite sans dupliquer les verifications.
+- Alternatives considerees:
+	- Utiliser deux champs primitifs partout (debut/fin): plus de risque d'incoherence et duplication des regles.
+
+## Principes SOLID appliques dans M1
+
+### SRP - Single Responsibility Principle
+
+- Application:
+	- models.py: entites et invariants de domaine
+	- m1_services.py: logique metier/orchestration
+	- repositories.py (infrastructure): acces SQLite
+	- m1_routes.py: adaptation HTTP
+- Pourquoi:
+	- Chaque couche a une responsabilite unique, ce qui limite les effets de bord lors des modifications.
+
+### OCP - Open/Closed Principle
+
+- Application:
+	- Les services travaillent avec les interfaces PlateauRepository et DisponibiliteRepository.
+	- On peut ajouter une nouvelle implementation (PostgreSQL, API externe, in-memory) sans modifier la logique metier.
+- Pourquoi:
+	- Le module peut evoluer par extension des implementations techniques plutot que par modification du coeur metier.
+
+### LSP - Liskov Substitution Principle
+
+- Application:
+	- Les implementations SQLite*Repository et les doubles de tests in-memory respectent les memes contrats.
+- Pourquoi:
+	- Les services fonctionnent avec n'importe quelle implementation conforme, sans changer leur comportement attendu.
+
+### ISP - Interface Segregation Principle
+
+- Application:
+	- Deux interfaces separees: PlateauRepository et DisponibiliteRepository.
+- Pourquoi:
+	- Chaque client depend seulement des methodes dont il a besoin.
+
+### DIP - Dependency Inversion Principle
+
+- Application:
+	- Les services dependent des abstractions de repository, pas des classes SQLite concretes.
+- Pourquoi:
+	- Reduit le couplage metier/infrastructure, facilite les tests et l'evolution technique.
+
+## Pourquoi ces choix pour M1
+
+- M1 est la base du projet: il faut privilegier une architecture stable et testable.
+- Ces patterns sont simples, concrets, et directement relies aux exigences de qualite OO du cours.
+- Ils preparent naturellement les modules suivants:
+	- M2 (reservations et conflits) pourra reutiliser les memes services + repositories.
+	- M4 (notifications) pourra etre ajoute sans casser le coeur metier de M1.
