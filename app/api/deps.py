@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from app.application import DisponibiliteService, PlateauService
-from app.infrastructure import SQLiteDisponibiliteRepository, SQLiteManager, SQLitePlateauRepository
+from app.application import DisponibiliteService, PlateauService, ReservationService
+from app.infrastructure import (
+    SQLiteDisponibiliteRepository,
+    SQLiteManager,
+    SQLitePlateauRepository,
+    SQLiteReservationRepository,
+)
 
 _db_manager = SQLiteManager()
 _plateau_repo = SQLitePlateauRepository(_db_manager)
 _disponibilite_repo = SQLiteDisponibiliteRepository(_db_manager)
+_reservation_repo = SQLiteReservationRepository(_db_manager)
 
 
 def init_schema() -> None:
@@ -20,4 +26,12 @@ def get_disponibilite_service() -> DisponibiliteService:
     return DisponibiliteService(
         plateau_repo=_plateau_repo,
         disponibilite_repo=_disponibilite_repo,
+    )
+
+
+def get_reservation_service() -> ReservationService:
+    return ReservationService(
+        plateau_repo=_plateau_repo,
+        disponibilite_repo=_disponibilite_repo,
+        reservation_repo=_reservation_repo,
     )

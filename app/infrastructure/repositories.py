@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import time
+from datetime import date, datetime, time
 
-from app.domain.models import Creneau, Disponibilite, Plateau, WeekDay
-from app.domain.repositories import DisponibiliteRepository, PlateauRepository
+from app.domain.models import Creneau, Disponibilite, Plateau, Reservation, ReservationStatus, WeekDay
+from app.domain.repositories import DisponibiliteRepository, PlateauRepository, ReservationRepository
 
 from .sqlite import SQLiteManager
 
@@ -128,3 +128,100 @@ class SQLiteDisponibiliteRepository(DisponibiliteRepository):
             )
             for row in rows
         ]
+
+
+class SQLiteReservationRepository(ReservationRepository):
+    def __init__(self, db: SQLiteManager):
+        self.db = db
+
+    def create(self, reservation: Reservation) -> Reservation:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO reservations (
+                    plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    reservation.plateau_id,
+                    reservation.utilisateur,
+                    reservation.date_reservation.isoformat(),
+                    reservation.creneau.debut.isoformat(timespec="minutes"),
+                    reservation.creneau.fin.isoformat(timespec="minutes"),
+                    reservation.statut.value,
+                    reservation.created_at.isoformat(),
+                ),
+            )
+            created_id = int(cursor.lastrowid)
+        return Reservation(
+            id=created_id,
+            plateau_id=reservation.plateau_id,
+            utilisateur=reservation.utilisateur,
+            date_reservation=reservation.date_reservation,
+            creneau=reservation.creneau,
+            statut=reservation.statut,
+            created_at=reservation.created_at,
+        )
+
+    def get_by_id(self, reservation_id: int) -> Reservation | None:
+        with self.db.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                FROM reservations
+                WHERE id = ?
+                """,
+                (reservation_id,),
+            ).fetchone()
+        return self._row_to_reservation(row)
+
+    def list_all(self) -> list[Reservation]:
+        with self.db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                FROM reservations
+                ORDER BY created_at, id
+                """
+            ).fetchall()
+        return [self._row_to_reservation(row) for row in rows if row is not None]
+
+    def list_by_plateau_and_date(self, plateau_id: int, reservation_date: date) -> list[Reservation]:
+        with self.db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                FROM reservations
+                WHERE plateau_id = ? AND date_reservation = ?
+                ORDER BY created_at, id
+                """,
+                (plateau_id, reservation_date.isoformat()),
+            ).fetchall()
+        return [self._row_to_reservation(row) for row in rows if row is not None]
+
+    def update_status(self, reservation_id: int, status: ReservationStatus) -> Reservation | None:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                "UPDATE reservations SET statut = ? WHERE id = ?",
+                (status.value, reservation_id),
+            )
+        if cursor.rowcount == 0:
+            return None
+        return self.get_by_id(reservation_id)
+
+    @staticmethod
+    def _row_to_reservation(row) -> Reservation | None:
+        if row is None:
+            return None
+        return Reservation(
+            id=int(row["id"]),
+            plateau_id=int(row["plateau_id"]),
+            utilisateur=row["utilisateur"],
+            date_reservation=date.fromisoformat(row["date_reservation"]),
+            creneau=Creneau(
+                debut=time.fromisoformat(row["heure_debut"]),
+                fin=time.fromisoformat(row["heure_fin"]),
+            ),
+            statut=ReservationStatus(row["statut"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )

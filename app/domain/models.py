@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import time
+from dataclasses import dataclass, field
+from datetime import date, datetime, time
 from enum import Enum
 
 
@@ -58,3 +58,26 @@ class Disponibilite:
     def __post_init__(self) -> None:
         if self.plateau_id <= 0:
             raise DomainValidationError("L'identifiant du plateau est invalide.")
+
+
+class ReservationStatus(str, Enum):
+    CONFIRMED = "CONFIRMED"
+    WAITLISTED = "WAITLISTED"
+    CANCELLED = "CANCELLED"
+
+
+@dataclass(frozen=True)
+class Reservation:
+    id: int | None
+    plateau_id: int
+    utilisateur: str
+    date_reservation: date
+    creneau: Creneau
+    statut: ReservationStatus
+    created_at: datetime = field(default_factory=datetime.utcnow)
+
+    def __post_init__(self) -> None:
+        if self.plateau_id <= 0:
+            raise DomainValidationError("L'identifiant du plateau est invalide.")
+        if not self.utilisateur.strip():
+            raise DomainValidationError("L'utilisateur est obligatoire.")

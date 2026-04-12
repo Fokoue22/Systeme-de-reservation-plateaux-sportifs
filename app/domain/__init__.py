@@ -1,5 +1,11 @@
+from .cancellation_policies import (
+	CancellationPolicy,
+	FlexibleCancellationPolicy,
+	Strict24hCancellationPolicy,
+)
 from .models import Creneau, Disponibilite, DomainValidationError, Plateau, WeekDay
-from .repositories import DisponibiliteRepository, PlateauRepository
+from .models import Reservation, ReservationStatus
+from .repositories import DisponibiliteRepository, PlateauRepository, ReservationRepository
 
 __all__ = [
 	"Creneau",
@@ -7,6 +13,12 @@ __all__ = [
 	"DomainValidationError",
 	"Plateau",
 	"WeekDay",
+	"Reservation",
+	"ReservationStatus",
 	"PlateauRepository",
 	"DisponibiliteRepository",
+	"ReservationRepository",
+	"CancellationPolicy",
+	"FlexibleCancellationPolicy",
+	"Strict24hCancellationPolicy",
 ]

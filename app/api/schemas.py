@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import time
+from datetime import date, datetime, time
 
 from pydantic import BaseModel, Field
 
-from app.domain.models import WeekDay
+from app.domain.models import ReservationStatus, WeekDay
 
 
 class PlateauCreate(BaseModel):
@@ -41,3 +41,20 @@ class DisponibiliteRead(BaseModel):
     plateau_id: int
     jour: WeekDay
     creneau: CreneauInput
+
+
+class ReservationCreate(BaseModel):
+    plateau_id: int = Field(gt=0)
+    utilisateur: str = Field(min_length=1)
+    date_reservation: date
+    creneau: CreneauInput
+
+
+class ReservationRead(BaseModel):
+    id: int
+    plateau_id: int
+    utilisateur: str
+    date_reservation: date
+    creneau: CreneauInput
+    statut: ReservationStatus
+    created_at: datetime

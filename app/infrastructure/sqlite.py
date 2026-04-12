@@ -47,3 +47,18 @@ class SQLiteManager:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reservations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    plateau_id INTEGER NOT NULL,
+                    utilisateur TEXT NOT NULL,
+                    date_reservation TEXT NOT NULL,
+                    heure_debut TEXT NOT NULL,
+                    heure_fin TEXT NOT NULL,
+                    statut TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(plateau_id) REFERENCES plateaux(id) ON DELETE CASCADE
+                )
+                """
+            )

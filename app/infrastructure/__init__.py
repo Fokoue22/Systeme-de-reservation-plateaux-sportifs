@@ -1,4 +1,13 @@
-from .repositories import SQLiteDisponibiliteRepository, SQLitePlateauRepository
+from .repositories import (
+	SQLiteDisponibiliteRepository,
+	SQLitePlateauRepository,
+	SQLiteReservationRepository,
+)
 from .sqlite import SQLiteManager
 
-__all__ = ["SQLiteManager", "SQLitePlateauRepository", "SQLiteDisponibiliteRepository"]
+__all__ = [
+	"SQLiteManager",
+	"SQLitePlateauRepository",
+	"SQLiteDisponibiliteRepository",
+	"SQLiteReservationRepository",
+]
