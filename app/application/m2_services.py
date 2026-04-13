@@ -32,6 +32,11 @@ class ReservationService:
         self.disponibilite_repo = disponibilite_repo
         self.reservation_repo = reservation_repo
 
+    def _ensure_half_hour_slot(self, slot: Creneau) -> None:
+        valid_minutes = {0, 30}
+        if slot.debut.minute not in valid_minutes or slot.fin.minute not in valid_minutes:
+            raise ConflictError("Les reservations doivent respecter des creneaux de 30 minutes (08:00, 08:30, etc.).")
+
     def _ensure_availability(self, plateau_id: int, reservation_date: date, slot: Creneau) -> None:
         weekday = _weekday_from_date(reservation_date)
         disponibilites = self.disponibilite_repo.list_by_plateau(plateau_id)
@@ -54,6 +59,7 @@ class ReservationService:
         if self.plateau_repo.get_by_id(plateau_id) is None:
             raise NotFoundError("Le plateau cible n'existe pas.")
 
+        self._ensure_half_hour_slot(slot)
         self._ensure_availability(plateau_id, reservation_date, slot)
 
         existing = self.reservation_repo.list_by_plateau_and_date(plateau_id, reservation_date)
