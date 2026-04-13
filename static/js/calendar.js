@@ -13,6 +13,8 @@ const peopleCountEl = document.getElementById("peopleCount");
 const capacityMinEl = document.getElementById("capacityMin");
 const capacityMaxEl = document.getElementById("capacityMax");
 const plateauSelectNode = bookingFormEl.elements.namedItem("plateau_id");
+const arrivalSelectEl = document.getElementById("arrivalSelect");
+const departureSelectEl = document.getElementById("departureSelect");
 
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -60,6 +62,57 @@ function updateCapacityInfo() {
   if (!peopleCountEl.value) {
     peopleCountEl.value = String(minCap);
   }
+}
+
+function formatHourMinute(totalMinutes) {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function buildTimeOptions(selectEl, startMin, endMin) {
+  selectEl.innerHTML = "";
+  for (let minutes = startMin; minutes <= endMin; minutes += SLOT_MINUTES) {
+    const option = document.createElement("option");
+    option.value = formatHourMinute(minutes);
+    option.textContent = formatHourMinute(minutes);
+    selectEl.appendChild(option);
+  }
+}
+
+function refreshDepartureOptions() {
+  const arrival = toMinutes(arrivalSelectEl.value);
+  const minDeparture = arrival + SLOT_MINUTES;
+  buildTimeOptions(departureSelectEl, minDeparture, END_HOUR * 60);
+}
+
+function inferZoneLabel(plateau) {
+  const source = `${plateau.nom} ${plateau.emplacement}`.toLowerCase();
+  if (source.includes("inter") || source.includes("indoor")) return "interieur";
+  if (source.includes("exter") || source.includes("outdoor")) return "exterieur";
+  if (source.includes("profond")) return "eau profonde";
+  return "general";
+}
+
+function inferBaseFamily(plateau) {
+  const lowered = plateau.nom.toLowerCase();
+  if (lowered.includes("piscine")) return "Piscine";
+  if (lowered.includes("terrain")) return "Terrain";
+  if (lowered.includes("court")) return "Court";
+  return "Zone";
+}
+
+function cleanedPlateauLabel(plateau) {
+  const markerMatch = plateau.nom.match(/\bM\s*(\d+)\b/i);
+  const marker = markerMatch ? `M${markerMatch[1]}` : null;
+  const base = plateau.nom
+    .replace(/\bM\s*\d+\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const zone = inferZoneLabel(plateau);
+  const family = inferBaseFamily(plateau);
+  const prefix = base || `${family} ${zone}`.trim();
+  return marker ? `${prefix} ${marker}`.trim() : prefix;
 }
 
 function sanitizeUser(value) {
@@ -117,11 +170,34 @@ function renderTabs() {
 
 function renderPlateauSelect() {
   plateauSelectEl.innerHTML = "";
+
+  const grouped = new Map();
   for (const p of plateaux) {
-    const option = document.createElement("option");
-    option.value = String(p.id);
-    option.textContent = `${p.nom} (${p.type_sport}) - min 1 / max ${p.capacite}`;
-    plateauSelectEl.appendChild(option);
+    const family = inferBaseFamily(p).toLowerCase();
+    const zone = inferZoneLabel(p);
+    const groupLabel = `${p.type_sport} - ${family} ${zone}`;
+    if (!grouped.has(groupLabel)) {
+      grouped.set(groupLabel, []);
+    }
+    grouped.get(groupLabel).push(p);
+  }
+
+  for (const [groupLabel, items] of grouped.entries()) {
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = groupLabel;
+    const seen = new Set();
+    for (const p of items) {
+      const pretty = cleanedPlateauLabel(p);
+      const dedupeKey = `${groupLabel}|${pretty}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      const option = document.createElement("option");
+      option.value = String(p.id);
+      option.textContent = `${pretty} (max ${p.capacite})`;
+      optgroup.appendChild(option);
+    }
+    plateauSelectEl.appendChild(optgroup);
   }
   updateCapacityInfo();
 }
@@ -290,6 +366,10 @@ plateauSelectNode.addEventListener("change", () => {
   updateCapacityInfo();
 });
 
+arrivalSelectEl.addEventListener("change", () => {
+  refreshDepartureOptions();
+});
+
 utilisateurInputEl.addEventListener("change", () => {
   currentUser = sanitizeUser(utilisateurInputEl.value);
   if (currentUser) {
@@ -322,12 +402,10 @@ todayBtnEl.addEventListener("click", async () => {
   formDateEl.value = today;
   dateInputEl.min = today;
   formDateEl.min = today;
-  bookingFormEl.elements.namedItem("debut").step = "1800";
-  bookingFormEl.elements.namedItem("fin").step = "1800";
-  bookingFormEl.elements.namedItem("debut").min = "08:00";
-  bookingFormEl.elements.namedItem("fin").min = "08:30";
-  bookingFormEl.elements.namedItem("debut").max = "21:30";
-  bookingFormEl.elements.namedItem("fin").max = "22:00";
+  buildTimeOptions(arrivalSelectEl, START_HOUR * 60, END_HOUR * 60 - SLOT_MINUTES);
+  arrivalSelectEl.value = "08:00";
+  refreshDepartureOptions();
+  departureSelectEl.value = "08:30";
   peopleCountEl.step = "1";
   peopleCountEl.value = "1";
   renderTimeScale();
