@@ -75,6 +75,22 @@ body {
   font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sport-tab.all-sports {
+  background: #2c2f36;
+  border-color: #434955;
+  font-weight: 600;
+  margin-right: 8px;
+  padding-right: 16px;
+  border-right: 2px solid #515767;
+}
+
+.sport-tab.all-sports.active {
+  border-right-color: var(--accent);
+  background: #3a3f49;
+  color: #fce8b3;
 }
 
 .sport-tab.active {

@@ -60,8 +60,9 @@ function renderTabs() {
   for (const sport of sports) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = `sport-tab ${sport === selectedSport ? "active" : ""}`;
-    btn.textContent = sport;
+    const isTousBtn = sport === "Tous";
+    btn.className = `sport-tab ${isTousBtn ? "all-sports" : ""} ${sport === selectedSport ? "active" : ""}`;
+    btn.textContent = isTousBtn ? "Tous les calendriers" : sport;
     btn.addEventListener("click", () => {
       selectedSport = sport;
       renderTabs();
