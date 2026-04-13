@@ -50,6 +50,53 @@ function isHalfHourSlot(value) {
   return mins % SLOT_MINUTES === 0;
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function capitalizeWords(value) {
+  return String(value || "")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function buildPlateauDisplayData(items) {
+  const grouped = new Map();
+
+  for (const plateau of items) {
+    const key = [normalizeText(plateau.type_sport), normalizeText(plateau.emplacement)].join("|");
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key).push(plateau);
+  }
+
+  const labelsById = new Map();
+  const groups = [];
+
+  for (const [key, groupedItems] of grouped.entries()) {
+    const ordered = groupedItems.slice().sort((left, right) => left.id - right.id);
+    const first = ordered[0];
+    const groupLabel = `${capitalizeWords(first.type_sport)} - ${first.emplacement}`;
+
+    ordered.forEach((plateau, index) => {
+      const sequence = index + 1;
+      const label = `${capitalizeWords(first.type_sport)} - ${plateau.emplacement} - M${sequence}`;
+      labelsById.set(plateau.id, label);
+    });
+
+    groups.push({ groupLabel, items: ordered });
+  }
+
+  groups.sort((left, right) => left.groupLabel.localeCompare(right.groupLabel, "fr"));
+  return { labelsById, groups };
+}
+
 function updateCapacityInfo() {
   const selectedPlateauId = Number(plateauSelectNode.value);
   const plateau = plateaux.find((p) => p.id === selectedPlateauId);
@@ -84,65 +131,6 @@ function refreshDepartureOptions() {
   const arrival = toMinutes(arrivalSelectEl.value);
   const minDeparture = arrival + SLOT_MINUTES;
   buildTimeOptions(departureSelectEl, minDeparture, END_HOUR * 60);
-}
-
-function inferZoneLabel(plateau) {
-  const source = `${plateau.nom} ${plateau.emplacement}`.toLowerCase();
-  if (source.includes("inter") || source.includes("indoor")) return "interieur";
-  if (source.includes("exter") || source.includes("outdoor")) return "exterieur";
-  if (source.includes("profond")) return "eau profonde";
-  return "general";
-}
-
-function zoneLabelPretty(zone) {
-  if (zone === "interieur") return "Interieur";
-  if (zone === "exterieur") return "Exterieur";
-  if (zone === "eau profonde") return "Eau profonde";
-  return "General";
-}
-
-function inferBaseFamily(plateau) {
-  const lowered = plateau.nom.toLowerCase();
-  if (lowered.includes("piscine")) return "Piscine";
-  if (lowered.includes("terrain")) return "Terrain";
-  if (lowered.includes("court")) return "Court";
-  return "Zone";
-}
-
-function cleanedPlateauLabel(plateau) {
-  const markerMatch = plateau.nom.match(/\bM\s*(\d+)\b/i);
-  const marker = markerMatch ? `M${markerMatch[1]}` : null;
-  const base = plateau.nom
-    .replace(/\bM\s*\d+\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const zone = inferZoneLabel(plateau);
-  const family = inferBaseFamily(plateau);
-  const prefix = base || `${family} ${zone}`.trim();
-  return marker ? `${prefix} ${marker}`.trim() : prefix;
-}
-
-function extractMarker(plateau) {
-  const markerMatch = `${plateau.nom} ${plateau.emplacement}`.match(/\bM\s*(\d+)\b/i);
-  return markerMatch ? `M${markerMatch[1]}` : "";
-}
-
-function clientPlateauLabel(plateau) {
-  const family = inferBaseFamily(plateau);
-  const zone = zoneLabelPretty(inferZoneLabel(plateau));
-  const marker = extractMarker(plateau);
-  const base = cleanedPlateauLabel(plateau);
-  const anchor = marker ? `${family} ${marker}` : base;
-  return `${zone} - ${anchor} - ${plateau.emplacement}`;
-}
-
-function lanePlateauLabel(plateau) {
-  const zone = zoneLabelPretty(inferZoneLabel(plateau));
-  const marker = extractMarker(plateau);
-  if (marker) {
-    return `${plateau.type_sport} - ${zone} ${marker}`;
-  }
-  return `${plateau.type_sport} - ${zone} (${plateau.emplacement})`;
 }
 
 function sanitizeUser(value) {
@@ -201,23 +189,14 @@ function renderTabs() {
 function renderPlateauSelect() {
   plateauSelectEl.innerHTML = "";
 
-  const grouped = new Map();
-  for (const p of plateaux) {
-    const zone = zoneLabelPretty(inferZoneLabel(p));
-    const groupLabel = `${p.type_sport} - ${zone}`;
-    if (!grouped.has(groupLabel)) {
-      grouped.set(groupLabel, []);
-    }
-    grouped.get(groupLabel).push(p);
-  }
-
-  for (const [groupLabel, items] of grouped.entries()) {
+  const displayData = buildPlateauDisplayData(plateaux);
+  for (const { groupLabel, items } of displayData.groups) {
     const optgroup = document.createElement("optgroup");
     optgroup.label = groupLabel;
     for (const p of items) {
       const option = document.createElement("option");
       option.value = String(p.id);
-      option.textContent = `${clientPlateauLabel(p)} (max ${p.capacite})`;
+      option.textContent = `${displayData.labelsById.get(p.id)} (max ${p.capacite})`;
       optgroup.appendChild(option);
     }
     plateauSelectEl.appendChild(optgroup);
@@ -227,6 +206,7 @@ function renderPlateauSelect() {
 
 function renderLanes() {
   const filtered = getFilteredPlateaux();
+  const displayData = buildPlateauDisplayData(filtered);
   lanesEl.innerHTML = "";
 
   subtitleEl.textContent = `${filtered.length} plateau(x) - ${dateInputEl.value}`;
@@ -238,7 +218,7 @@ function renderLanes() {
 
     const title = document.createElement("div");
     title.className = "lane-title";
-    title.textContent = lanePlateauLabel(plateau);
+    title.textContent = displayData.labelsById.get(plateau.id) || `${capitalizeWords(plateau.type_sport)} - ${plateau.nom} - ${plateau.emplacement}`;
     lane.appendChild(title);
 
     const laneReservations = reservations.filter(
