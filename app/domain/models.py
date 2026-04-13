@@ -74,6 +74,7 @@ class Reservation:
     date_reservation: date
     creneau: Creneau
     statut: ReservationStatus
+    nb_personnes: int = 1
     created_at: datetime = field(default_factory=datetime.utcnow)
 
     def __post_init__(self) -> None:
@@ -81,3 +82,5 @@ class Reservation:
             raise DomainValidationError("L'identifiant du plateau est invalide.")
         if not self.utilisateur.strip():
             raise DomainValidationError("L'utilisateur est obligatoire.")
+        if self.nb_personnes <= 0:
+            raise DomainValidationError("Le nombre de personnes doit etre superieur a 0.")

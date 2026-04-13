@@ -9,6 +9,10 @@ const bookingFormEl = document.getElementById("bookingForm");
 const flashEl = document.getElementById("flash");
 const todayBtnEl = document.getElementById("todayBtn");
 const utilisateurInputEl = bookingFormEl.elements.namedItem("utilisateur");
+const peopleCountEl = document.getElementById("peopleCount");
+const capacityMinEl = document.getElementById("capacityMin");
+const capacityMaxEl = document.getElementById("capacityMax");
+const plateauSelectNode = bookingFormEl.elements.namedItem("plateau_id");
 
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -44,6 +48,20 @@ function isHalfHourSlot(value) {
   return mins % SLOT_MINUTES === 0;
 }
 
+function updateCapacityInfo() {
+  const selectedPlateauId = Number(plateauSelectNode.value);
+  const plateau = plateaux.find((p) => p.id === selectedPlateauId);
+  const minCap = 1;
+  const maxCap = plateau ? plateau.capacite : 1;
+  capacityMinEl.textContent = String(minCap);
+  capacityMaxEl.textContent = String(maxCap);
+  peopleCountEl.min = String(minCap);
+  peopleCountEl.max = String(maxCap);
+  if (!peopleCountEl.value) {
+    peopleCountEl.value = String(minCap);
+  }
+}
+
 function sanitizeUser(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -63,7 +81,7 @@ function renderTimeScale() {
     const m = minutes % 60;
     const line = document.createElement("div");
     line.className = "time-label";
-    line.textContent = m === 0 ? `${String(h).padStart(2, "0")}h` : `${String(h).padStart(2, "0")}h30`;
+    line.textContent = `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
     timeColumnEl.appendChild(line);
   }
 }
@@ -102,9 +120,10 @@ function renderPlateauSelect() {
   for (const p of plateaux) {
     const option = document.createElement("option");
     option.value = String(p.id);
-    option.textContent = `${p.nom} (${p.type_sport})`;
+    option.textContent = `${p.nom} (${p.type_sport}) - min 1 / max ${p.capacite}`;
     plateauSelectEl.appendChild(option);
   }
+  updateCapacityInfo();
 }
 
 function renderLanes() {
@@ -221,9 +240,23 @@ bookingFormEl.addEventListener("submit", async (event) => {
   const fd = new FormData(bookingFormEl);
   const debut = String(fd.get("debut") || "");
   const fin = String(fd.get("fin") || "");
+  const nbPersonnes = Number(fd.get("nb_personnes") || 0);
+  const selectedPlateau = plateaux.find((p) => p.id === Number(fd.get("plateau_id")));
+  const minCap = 1;
+  const maxCap = selectedPlateau ? selectedPlateau.capacite : 1;
 
   if (!isHalfHourSlot(debut) || !isHalfHourSlot(fin)) {
     showFlash("Utilisez des horaires au format 08:00, 08:30, 09:00, etc.", "error");
+    return;
+  }
+
+  if (toMinutes(debut) < toMinutes("08:00") || toMinutes(fin) > toMinutes("22:00")) {
+    showFlash("Les reservations doivent etre entre 08:00 et 22:00.", "error");
+    return;
+  }
+
+  if (nbPersonnes < minCap || nbPersonnes > maxCap) {
+    showFlash(`Le nombre de personnes doit etre entre ${minCap} et ${maxCap}.`, "error");
     return;
   }
 
@@ -231,6 +264,7 @@ bookingFormEl.addEventListener("submit", async (event) => {
     plateau_id: Number(fd.get("plateau_id")),
     utilisateur: String(fd.get("utilisateur") || "").trim(),
     date_reservation: String(fd.get("date_reservation")),
+    nb_personnes: nbPersonnes,
     creneau: {
       debut: `${debut}:00`,
       fin: `${fin}:00`,
@@ -250,6 +284,10 @@ bookingFormEl.addEventListener("submit", async (event) => {
   } catch (error) {
     showFlash(error.message || "Erreur lors de la creation", "error");
   }
+});
+
+plateauSelectNode.addEventListener("change", () => {
+  updateCapacityInfo();
 });
 
 utilisateurInputEl.addEventListener("change", () => {
@@ -290,6 +328,8 @@ todayBtnEl.addEventListener("click", async () => {
   bookingFormEl.elements.namedItem("fin").min = "08:30";
   bookingFormEl.elements.namedItem("debut").max = "21:30";
   bookingFormEl.elements.namedItem("fin").max = "22:00";
+  peopleCountEl.step = "1";
+  peopleCountEl.value = "1";
   renderTimeScale();
   refreshCalendar();
 })();

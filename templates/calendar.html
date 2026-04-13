@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/css/calendar.css?v=20260412c" />
+    <link rel="stylesheet" href="/static/css/calendar.css?v=20260412d" />
   </head>
   <body>
     <header class="topbar">
@@ -79,12 +79,18 @@
             <input type="date" name="date_reservation" id="formDate" required />
           </label>
           <div class="grid2">
-            <label>Debut
+            <label>Arrivee
               <input type="time" name="debut" required />
             </label>
-            <label>Fin
+            <label>Depart
               <input type="time" name="fin" required />
             </label>
+          </div>
+          <label>Nombre de personnes
+            <input type="number" name="nb_personnes" id="peopleCount" min="1" step="1" required />
+          </label>
+          <div class="capacity-box" id="capacityInfo">
+            Capacite minimale: <strong id="capacityMin">1</strong> | Capacite maximale: <strong id="capacityMax">-</strong>
           </div>
           <button class="btn primary" type="submit">Creer la reservation</button>
         </form>
@@ -99,6 +105,6 @@
       </aside>
     </main>
 
-    <script src="/static/js/calendar.js?v=20260412c" defer></script>
+    <script src="/static/js/calendar.js?v=20260412d" defer></script>
   </body>
 </html>

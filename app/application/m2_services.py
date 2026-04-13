@@ -55,9 +55,18 @@ class ReservationService:
         utilisateur: str,
         reservation_date: date,
         slot: Creneau,
+        nb_personnes: int = 1,
     ) -> Reservation:
-        if self.plateau_repo.get_by_id(plateau_id) is None:
+        plateau = self.plateau_repo.get_by_id(plateau_id)
+        if plateau is None:
             raise NotFoundError("Le plateau cible n'existe pas.")
+
+        min_capacite = 1
+        max_capacite = plateau.capacite
+        if nb_personnes < min_capacite or nb_personnes > max_capacite:
+            raise ConflictError(
+                f"Le nombre de personnes doit etre entre {min_capacite} et {max_capacite} pour ce plateau."
+            )
 
         self._ensure_half_hour_slot(slot)
         self._ensure_availability(plateau_id, reservation_date, slot)
@@ -75,6 +84,7 @@ class ReservationService:
             date_reservation=reservation_date,
             creneau=slot,
             statut=status,
+            nb_personnes=nb_personnes,
         )
         return self.reservation_repo.create(reservation)
 

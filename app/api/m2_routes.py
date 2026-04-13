@@ -30,6 +30,7 @@ def create_reservation(
             utilisateur=payload.utilisateur,
             reservation_date=payload.date_reservation,
             slot=Creneau(debut=payload.creneau.debut, fin=payload.creneau.fin),
+            nb_personnes=payload.nb_personnes,
         )
     except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -43,6 +44,7 @@ def create_reservation(
         date_reservation=reservation.date_reservation,
         creneau={"debut": reservation.creneau.debut, "fin": reservation.creneau.fin},
         statut=reservation.statut,
+        nb_personnes=reservation.nb_personnes,
         created_at=reservation.created_at,
     )
 
@@ -66,6 +68,7 @@ def list_reservations(
             date_reservation=item.date_reservation,
             creneau={"debut": item.creneau.debut, "fin": item.creneau.fin},
             statut=item.statut,
+            nb_personnes=item.nb_personnes,
             created_at=item.created_at,
         )
         for item in reservations
@@ -96,5 +99,6 @@ def cancel_reservation(
         date_reservation=reservation.date_reservation,
         creneau={"debut": reservation.creneau.debut, "fin": reservation.creneau.fin},
         statut=reservation.statut,
+        nb_personnes=reservation.nb_personnes,
         created_at=reservation.created_at,
     )

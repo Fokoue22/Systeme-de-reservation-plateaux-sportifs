@@ -139,8 +139,8 @@ class SQLiteReservationRepository(ReservationRepository):
             cursor = conn.execute(
                 """
                 INSERT INTO reservations (
-                    plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     reservation.plateau_id,
@@ -149,6 +149,7 @@ class SQLiteReservationRepository(ReservationRepository):
                     reservation.creneau.debut.isoformat(timespec="minutes"),
                     reservation.creneau.fin.isoformat(timespec="minutes"),
                     reservation.statut.value,
+                    reservation.nb_personnes,
                     reservation.created_at.isoformat(),
                 ),
             )
@@ -160,6 +161,7 @@ class SQLiteReservationRepository(ReservationRepository):
             date_reservation=reservation.date_reservation,
             creneau=reservation.creneau,
             statut=reservation.statut,
+            nb_personnes=reservation.nb_personnes,
             created_at=reservation.created_at,
         )
 
@@ -167,7 +169,7 @@ class SQLiteReservationRepository(ReservationRepository):
         with self.db.connection() as conn:
             row = conn.execute(
                 """
-                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
                 FROM reservations
                 WHERE id = ?
                 """,
@@ -179,7 +181,7 @@ class SQLiteReservationRepository(ReservationRepository):
         with self.db.connection() as conn:
             rows = conn.execute(
                 """
-                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
                 FROM reservations
                 ORDER BY created_at, id
                 """
@@ -190,7 +192,7 @@ class SQLiteReservationRepository(ReservationRepository):
         with self.db.connection() as conn:
             rows = conn.execute(
                 """
-                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, created_at
+                SELECT id, plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
                 FROM reservations
                 WHERE plateau_id = ? AND date_reservation = ?
                 ORDER BY created_at, id
@@ -223,5 +225,6 @@ class SQLiteReservationRepository(ReservationRepository):
                 fin=time.fromisoformat(row["heure_fin"]),
             ),
             statut=ReservationStatus(row["statut"]),
+            nb_personnes=int(row["nb_personnes"]),
             created_at=datetime.fromisoformat(row["created_at"]),
         )

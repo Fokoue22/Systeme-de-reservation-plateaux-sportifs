@@ -48,6 +48,7 @@ class ReservationCreate(BaseModel):
     utilisateur: str = Field(min_length=1)
     date_reservation: date
     creneau: CreneauInput
+    nb_personnes: int = Field(default=1, gt=0)
 
 
 class ReservationRead(BaseModel):
@@ -57,4 +58,5 @@ class ReservationRead(BaseModel):
     date_reservation: date
     creneau: CreneauInput
     statut: ReservationStatus
+    nb_personnes: int
     created_at: datetime

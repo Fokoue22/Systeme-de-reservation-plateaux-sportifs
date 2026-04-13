@@ -57,8 +57,13 @@ class SQLiteManager:
                     heure_debut TEXT NOT NULL,
                     heure_fin TEXT NOT NULL,
                     statut TEXT NOT NULL,
+                    nb_personnes INTEGER NOT NULL DEFAULT 1,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY(plateau_id) REFERENCES plateaux(id) ON DELETE CASCADE
                 )
                 """
             )
+
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(reservations)").fetchall()}
+            if "nb_personnes" not in columns:
+                conn.execute("ALTER TABLE reservations ADD COLUMN nb_personnes INTEGER NOT NULL DEFAULT 1")
