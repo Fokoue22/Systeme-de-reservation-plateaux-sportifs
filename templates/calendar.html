@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/css/calendar.css?v=20260412" />
+    <link rel="stylesheet" href="/static/css/calendar.css?v=20260412b" />
   </head>
   <body>
     <header class="topbar">
@@ -20,10 +20,29 @@
       </div>
       <nav class="sport-tabs" id="sportTabs"></nav>
       <div class="quick-icons" aria-label="Actions rapides">
-        <button class="icon-btn" type="button" title="Accueil" aria-label="Accueil">🏠</button>
-        <button class="icon-btn active" type="button" title="Calendrier" aria-label="Calendrier">📅</button>
-        <button class="icon-btn" type="button" title="Messages" aria-label="Messages">💬</button>
-        <button class="icon-btn" type="button" title="Parametres" aria-label="Parametres">⚙️</button>
+        <button class="icon-btn" type="button" title="Accueil" aria-label="Accueil">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 10.5L12 4l8 6.5" />
+            <path d="M7.5 9.5V20h9V9.5" />
+          </svg>
+        </button>
+        <button class="icon-btn active" type="button" title="Calendrier" aria-label="Calendrier">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="6" width="16" height="14" rx="2" />
+            <path d="M8 4v4M16 4v4M4 10h16" />
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" title="Messages" aria-label="Messages">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 7.5h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z" />
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" title="Parametres" aria-label="Parametres">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6.2 6.2l1.6 1.6M16.2 16.2l1.6 1.6M17.8 6.2l-1.6 1.6M7.8 16.2l-1.6 1.6" />
+          </svg>
+        </button>
       </div>
       <div class="top-actions">
         <button id="todayBtn" class="btn ghost">Aujourd'hui</button>
@@ -81,6 +100,6 @@
       </aside>
     </main>
 
-    <script src="/static/js/calendar.js?v=20260412" defer></script>
+    <script src="/static/js/calendar.js?v=20260412b" defer></script>
   </body>
 </html>

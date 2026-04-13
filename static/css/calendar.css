@@ -112,22 +112,33 @@ body {
 }
 
 .icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid #4e5463;
-  background: #3a3f49;
-  color: #f4f7ff;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  border: 1px solid #474c59;
+  background: #2f3440;
+  color: #e7ebf6;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  padding: 0;
+}
+
+.icon {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .icon-btn.active {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(214, 165, 47, 0.5);
+  color: #f3c756;
+  box-shadow: inset 0 0 0 1px rgba(214, 165, 47, 0.45);
 }
 
 .profile-chip {
