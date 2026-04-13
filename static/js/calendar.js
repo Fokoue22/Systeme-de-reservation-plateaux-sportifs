@@ -94,6 +94,13 @@ function inferZoneLabel(plateau) {
   return "general";
 }
 
+function zoneLabelPretty(zone) {
+  if (zone === "interieur") return "Interieur";
+  if (zone === "exterieur") return "Exterieur";
+  if (zone === "eau profonde") return "Eau profonde";
+  return "General";
+}
+
 function inferBaseFamily(plateau) {
   const lowered = plateau.nom.toLowerCase();
   if (lowered.includes("piscine")) return "Piscine";
@@ -113,6 +120,29 @@ function cleanedPlateauLabel(plateau) {
   const family = inferBaseFamily(plateau);
   const prefix = base || `${family} ${zone}`.trim();
   return marker ? `${prefix} ${marker}`.trim() : prefix;
+}
+
+function extractMarker(plateau) {
+  const markerMatch = `${plateau.nom} ${plateau.emplacement}`.match(/\bM\s*(\d+)\b/i);
+  return markerMatch ? `M${markerMatch[1]}` : "";
+}
+
+function clientPlateauLabel(plateau) {
+  const family = inferBaseFamily(plateau);
+  const zone = zoneLabelPretty(inferZoneLabel(plateau));
+  const marker = extractMarker(plateau);
+  const base = cleanedPlateauLabel(plateau);
+  const anchor = marker ? `${family} ${marker}` : base;
+  return `${zone} - ${anchor} - ${plateau.emplacement}`;
+}
+
+function lanePlateauLabel(plateau) {
+  const zone = zoneLabelPretty(inferZoneLabel(plateau));
+  const marker = extractMarker(plateau);
+  if (marker) {
+    return `${plateau.type_sport} - ${zone} ${marker}`;
+  }
+  return `${plateau.type_sport} - ${zone} (${plateau.emplacement})`;
 }
 
 function sanitizeUser(value) {
@@ -173,9 +203,8 @@ function renderPlateauSelect() {
 
   const grouped = new Map();
   for (const p of plateaux) {
-    const family = inferBaseFamily(p).toLowerCase();
-    const zone = inferZoneLabel(p);
-    const groupLabel = `${p.type_sport} - ${family} ${zone}`;
+    const zone = zoneLabelPretty(inferZoneLabel(p));
+    const groupLabel = `${p.type_sport} - ${zone}`;
     if (!grouped.has(groupLabel)) {
       grouped.set(groupLabel, []);
     }
@@ -185,16 +214,10 @@ function renderPlateauSelect() {
   for (const [groupLabel, items] of grouped.entries()) {
     const optgroup = document.createElement("optgroup");
     optgroup.label = groupLabel;
-    const seen = new Set();
     for (const p of items) {
-      const pretty = cleanedPlateauLabel(p);
-      const dedupeKey = `${groupLabel}|${pretty}`;
-      if (seen.has(dedupeKey)) continue;
-      seen.add(dedupeKey);
-
       const option = document.createElement("option");
       option.value = String(p.id);
-      option.textContent = `${pretty} (max ${p.capacite})`;
+      option.textContent = `${clientPlateauLabel(p)} (max ${p.capacite})`;
       optgroup.appendChild(option);
     }
     plateauSelectEl.appendChild(optgroup);
@@ -215,7 +238,7 @@ function renderLanes() {
 
     const title = document.createElement("div");
     title.className = "lane-title";
-    title.textContent = plateau.nom;
+    title.textContent = lanePlateauLabel(plateau);
     lane.appendChild(title);
 
     const laneReservations = reservations.filter(
