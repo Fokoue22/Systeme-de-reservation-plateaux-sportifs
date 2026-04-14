@@ -30,7 +30,8 @@ def build_plateaux_series(type_sport: str, emplacement: str, capacite: int, coun
 PLATEAUX_DATA = [
     *build_plateaux_series("Gymnase", "Zone Nord", 20, 5),
     *build_plateaux_series("Gymnase", "Zone Sud", 20, 5),
-    *build_plateaux_series("Piscine", "Zone Est - Olympique", 30, 5),
+    *build_plateaux_series("Piscine", "Zone Est - Olympique", 30, 3),
+    *build_plateaux_series("Piscine", "Zone Est - Semi-olympique", 30, 3),
     *build_plateaux_series("Soccer", "Zone Ouest", 22, 5),
     *build_plateaux_series("Tennis", "Zone A", 4, 3),
     *build_plateaux_series("Tennis", "Zone B", 4, 3),

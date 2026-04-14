@@ -95,6 +95,10 @@ class SQLiteManager:
                 "Piscine - Zone Est - M3",
                 "Piscine - Zone Est - M4",
                 "Piscine - Zone Est - M5",
+                "Piscine - Zone Est - Olympique - M4",
+                "Piscine - Zone Est - Olympique - M5",
+                "Piscine - Zone Est - Semi-olympique - M4",
+                "Piscine - Zone Est - Semi-olympique - M5",
             }
             for name in legacy_seed_names:
                 rows = conn.execute(

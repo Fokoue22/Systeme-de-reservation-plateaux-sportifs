@@ -86,10 +86,10 @@ Portee M1 implementee:
 - app/infrastructure/seeds.py
 	- Creation du catalogue de seed et de la factory method `create_plateau_from_data`.
 	- Generation des series M1..Mn par sport/zone pour faciliter les extensions futures.
-	- Specialisation des piscines par zone qualifiee: `Zone Est - Olympique`.
+	- Specialisation des piscines par zone qualifiee: `Zone Est - Olympique` (M1..M3) et `Zone Est - Semi-olympique` (M1..M3).
 - app/infrastructure/sqlite.py
 	- Ajout/maintien de `seed_initial_data` avec logique idempotente (insertion uniquement des plateaux manquants).
-	- Migration defensive des anciens noms de seed (suppression uniquement si aucune reservation liee).
+	- Migration defensive des anciens noms de seed (suppression uniquement si aucune reservation liee), y compris les anciennes series piscine M4/M5.
 - app/api/deps.py
 	- Appel du seed au demarrage via `init_schema()`.
 - PATTERNS.md
