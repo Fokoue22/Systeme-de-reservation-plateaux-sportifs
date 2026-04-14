@@ -12,62 +12,29 @@ the application code, just extend PLATEAUX_DATA.
 from app.domain.models import Plateau
 
 
+def build_plateaux_series(type_sport: str, emplacement: str, capacite: int, count: int) -> list[dict]:
+    """Generate M-series plateaux for a sport and zone (M1..Mn)."""
+    return [
+        {
+            "nom": f"{type_sport} - {emplacement} - M{index}",
+            "type_sport": type_sport,
+            "capacite": capacite,
+            "emplacement": emplacement,
+        }
+        for index in range(1, count + 1)
+    ]
+
+
 # Define all initial plateaux data
 # Extension-friendly: add new entries without touching application logic
 PLATEAUX_DATA = [
-    # Tennis courts
-    {
-        "nom": "Tennis - Zone A",
-        "type_sport": "Tennis",
-        "capacite": 4,
-        "emplacement": "Zone A",
-    },
-    {
-        "nom": "Tennis - Zone B",
-        "type_sport": "Tennis",
-        "capacite": 4,
-        "emplacement": "Zone B",
-    },
-    # Gymnases
-    {
-        "nom": "Gymnase M1",
-        "type_sport": "Gymnase",
-        "capacite": 20,
-        "emplacement": "Zone Nord",
-    },
-    {
-        "nom": "Gymnase M2",
-        "type_sport": "Gymnase",
-        "capacite": 20,
-        "emplacement": "Zone Nord",
-    },
-    {
-        "nom": "Gymnase M3",
-        "type_sport": "Gymnase",
-        "capacite": 20,
-        "emplacement": "Zone Sud",
-    },
-    # Swimming pool
-    {
-        "nom": "Piscine",
-        "type_sport": "Piscine",
-        "capacite": 30,
-        "emplacement": "Zone Est",
-    },
-    # Soccer field
-    {
-        "nom": "Terrain Soccer",
-        "type_sport": "Soccer",
-        "capacite": 22,
-        "emplacement": "Zone Ouest",
-    },
-    # Volleyball court
-    {
-        "nom": "Terrain Volleyball",
-        "type_sport": "Volleyball",
-        "capacite": 12,
-        "emplacement": "Zone Centre",
-    },
+    *build_plateaux_series("Gymnase", "Zone Nord", 20, 5),
+    *build_plateaux_series("Gymnase", "Zone Sud", 20, 5),
+    *build_plateaux_series("Piscine", "Zone Est", 30, 5),
+    *build_plateaux_series("Soccer", "Zone Ouest", 22, 5),
+    *build_plateaux_series("Tennis", "Zone A", 4, 3),
+    *build_plateaux_series("Tennis", "Zone B", 4, 3),
+    *build_plateaux_series("Volleyball", "Zone Centre", 12, 3),
 ]
 
 

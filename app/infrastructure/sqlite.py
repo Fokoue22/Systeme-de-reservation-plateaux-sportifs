@@ -72,23 +72,52 @@ class SQLiteManager:
 
     def seed_initial_data(self) -> None:
         """
-        Populate initial plateau data if tables are empty.
+        Populate initial plateau data.
         
         Uses Factory Pattern to create domain objects from PLATEAUX_DATA.
-        Only seeds if plateaux table is empty (idempotent operation).
+        Inserts only missing rows (idempotent operation).
         Respects OCP: extend PLATEAUX_DATA to add new sports without modifying code.
         """
         with self.connection() as conn:
-            # Check if plateaux table already has data
-            count = conn.execute("SELECT COUNT(*) as cnt FROM plateaux").fetchone()["cnt"]
-            
-            if count > 0:
-                # Already seeded; don't duplicate data
-                return
-            
-            # Insert seed data using factory method
+            # Cleanup old seed names from previous versions when not referenced by reservations.
+            # This keeps migration safe for active data while preventing duplicated series.
+            legacy_seed_names = {
+                "Tennis - Zone A",
+                "Tennis - Zone B",
+                "Gymnase M1",
+                "Gymnase M2",
+                "Gymnase M3",
+                "Piscine",
+                "Terrain Soccer",
+                "Terrain Volleyball",
+            }
+            for name in legacy_seed_names:
+                rows = conn.execute(
+                    "SELECT id FROM plateaux WHERE nom = ?",
+                    (name,),
+                ).fetchall()
+                for row in rows:
+                    reservation_count = conn.execute(
+                        "SELECT COUNT(*) AS cnt FROM reservations WHERE plateau_id = ?",
+                        (row["id"],),
+                    ).fetchone()["cnt"]
+                    if reservation_count == 0:
+                        conn.execute("DELETE FROM plateaux WHERE id = ?", (row["id"],))
+
+            # Insert only missing seed data using factory method.
             for data in PLATEAUX_DATA:
                 plateau = create_plateau_from_data(data)
+                exists = conn.execute(
+                    """
+                    SELECT 1
+                    FROM plateaux
+                    WHERE nom = ? AND type_sport = ? AND capacite = ? AND emplacement = ?
+                    LIMIT 1
+                    """,
+                    (plateau.nom, plateau.type_sport, plateau.capacite, plateau.emplacement),
+                ).fetchone()
+                if exists:
+                    continue
                 conn.execute(
                     "INSERT INTO plateaux (nom, type_sport, capacite, emplacement) VALUES (?, ?, ?, ?)",
                     (plateau.nom, plateau.type_sport, plateau.capacite, plateau.emplacement),

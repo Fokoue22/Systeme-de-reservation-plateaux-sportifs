@@ -62,10 +62,6 @@ Portee M1 implementee:
 - Alternatives considerees:
 	- Utiliser deux champs primitifs partout (debut/fin): plus de risque d'incoherence et duplication des regles.
 
-## Principes SOLID appliques dans M1
-- Alternatives considerees:
-	- Utiliser deux champs primitifs partout (debut/fin): plus de risque d'incoherence et duplication des regles.
-
 ### Pattern 5 - Factory Pattern (Seed Data Initialization)
 
 - Emplacement:
@@ -84,6 +80,18 @@ Portee M1 implementee:
 - Alternatives considerees:
 	- SQL INSERT direct dans initialize_schema: couple le schema et les donnees, difficile a maintenir.
 	- Seed lors d'un appel API manuel: oubli facile et data inconsistente entre environnements.
+
+### Fichiers modifies (traceabilite)
+
+- app/infrastructure/seeds.py
+	- Creation du catalogue de seed et de la factory method `create_plateau_from_data`.
+	- Generation des series M1..Mn par sport/zone pour faciliter les extensions futures.
+- app/infrastructure/sqlite.py
+	- Ajout/maintien de `seed_initial_data` avec logique idempotente (insertion uniquement des plateaux manquants).
+- app/api/deps.py
+	- Appel du seed au demarrage via `init_schema()`.
+- PATTERNS.md
+	- Documentation des patterns et ajout de la trace des fichiers modifies.
 
 ## Principes SOLID appliques dans M1
 
@@ -142,7 +150,7 @@ Portee M2 implementee:
 - Mise en liste d'attente automatique (waitlist)
 - Annulation avec politique configurable
 
-### Pattern 5 - Strategy Pattern (politique d'annulation)
+### Pattern 6 - Strategy Pattern (politique d'annulation)
 
 - Emplacement:
 	- app/domain/cancellation_policies.py
@@ -156,7 +164,7 @@ Portee M2 implementee:
 - Alternatives considerees:
 	- `if/else` dans le service selon un flag: plus rapide au debut, mais moins extensible.
 
-### Pattern 6 - State (etat de reservation)
+### Pattern 7 - State (etat de reservation)
 
 - Emplacement:
 	- app/domain/models.py (`ReservationStatus`)
@@ -168,7 +176,7 @@ Portee M2 implementee:
 - Alternatives considerees:
 	- Boolens multiples (`is_cancelled`, `is_waitlisted`): plus ambigu et source d'incoherence.
 
-### Pattern 7 - Queue-like Waitlist Policy
+### Pattern 8 - Queue-like Waitlist Policy
 
 - Emplacement:
 	- app/application/m2_services.py (`_promote_waitlist`)
