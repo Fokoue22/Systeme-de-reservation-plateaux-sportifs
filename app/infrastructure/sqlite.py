@@ -90,6 +90,11 @@ class SQLiteManager:
                 "Piscine",
                 "Terrain Soccer",
                 "Terrain Volleyball",
+                "Piscine - Zone Est - M1",
+                "Piscine - Zone Est - M2",
+                "Piscine - Zone Est - M3",
+                "Piscine - Zone Est - M4",
+                "Piscine - Zone Est - M5",
             }
             for name in legacy_seed_names:
                 rows = conn.execute(
