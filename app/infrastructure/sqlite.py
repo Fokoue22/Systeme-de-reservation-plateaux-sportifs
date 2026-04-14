@@ -9,6 +9,18 @@ from app.infrastructure.seeds import PLATEAUX_DATA, create_plateau_from_data
 
 DEFAULT_DB_PATH = Path("reservation.db")
 
+DEFAULT_AVAILABILITY_DAYS = (
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY",
+)
+DEFAULT_AVAILABILITY_START = "08:00"
+DEFAULT_AVAILABILITY_END = "22:00"
+
 
 class SQLiteManager:
     def __init__(self, db_path: Path | str = DEFAULT_DB_PATH):
@@ -131,3 +143,27 @@ class SQLiteManager:
                     "INSERT INTO plateaux (nom, type_sport, capacite, emplacement) VALUES (?, ?, ?, ?)",
                     (plateau.nom, plateau.type_sport, plateau.capacite, plateau.emplacement),
                 )
+
+            # Ensure each plateau has a default weekly availability window.
+            plateau_rows = conn.execute("SELECT id FROM plateaux").fetchall()
+            for plateau_row in plateau_rows:
+                plateau_id = int(plateau_row["id"])
+                for day in DEFAULT_AVAILABILITY_DAYS:
+                    exists = conn.execute(
+                        """
+                        SELECT 1
+                        FROM disponibilites
+                        WHERE plateau_id = ? AND jour = ? AND heure_debut = ? AND heure_fin = ?
+                        LIMIT 1
+                        """,
+                        (plateau_id, day, DEFAULT_AVAILABILITY_START, DEFAULT_AVAILABILITY_END),
+                    ).fetchone()
+                    if exists:
+                        continue
+                    conn.execute(
+                        """
+                        INSERT INTO disponibilites (plateau_id, jour, heure_debut, heure_fin)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (plateau_id, day, DEFAULT_AVAILABILITY_START, DEFAULT_AVAILABILITY_END),
+                    )

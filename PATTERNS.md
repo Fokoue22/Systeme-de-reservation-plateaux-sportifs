@@ -90,6 +90,7 @@ Portee M1 implementee:
 - app/infrastructure/sqlite.py
 	- Ajout/maintien de `seed_initial_data` avec logique idempotente (insertion uniquement des plateaux manquants).
 	- Migration defensive des anciens noms de seed (suppression uniquement si aucune reservation liee), y compris les anciennes series piscine M4/M5.
+	- Provisionnement automatique des disponibilites par defaut pour chaque plateau (LUNDI-DIMANCHE, 08:00-22:00) pour garantir la reservation immediate.
 - app/api/deps.py
 	- Appel du seed au demarrage via `init_schema()`.
 - PATTERNS.md
