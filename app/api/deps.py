@@ -15,7 +15,9 @@ _reservation_repo = SQLiteReservationRepository(_db_manager)
 
 
 def init_schema() -> None:
+    """Initialize database schema and seed initial data."""
     _db_manager.initialize_schema()
+    _db_manager.seed_initial_data()
 
 
 def get_plateau_service() -> PlateauService:

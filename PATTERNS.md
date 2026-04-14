@@ -63,6 +63,29 @@ Portee M1 implementee:
 	- Utiliser deux champs primitifs partout (debut/fin): plus de risque d'incoherence et duplication des regles.
 
 ## Principes SOLID appliques dans M1
+- Alternatives considerees:
+	- Utiliser deux champs primitifs partout (debut/fin): plus de risque d'incoherence et duplication des regles.
+
+### Pattern 5 - Factory Pattern (Seed Data Initialization)
+
+- Emplacement:
+	- app/infrastructure/seeds.py (definition des donnees + factory method)
+	- app/infrastructure/sqlite.py (méthode seed_initial_data)
+	- app/api/deps.py (appel au startup)
+- Probleme resolu:
+	- Decoupler les donnees initiales de la logique de persistence.
+	- Rendre extensible l'ajout de nouveaux plateaux sans modifier le code application.
+	- Respecter l'OCP: ajouter de nouveaux sports (Gymnase, Tennis, Piscine, Soccer, Volleyball) sans toucher aux services ou routes.
+- Pourquoi ce pattern:
+	- Les donnees initiales sont maintenues separement dans PLATEAUX_DATA.
+	- La factory method `create_plateau_from_data()` transforme chaque entree en objet domaine.
+	- L'operation est idempotente: re-executer ne duplique pas les donnees.
+	- Prepares le code pour des variantes futures (seed par fichier YAML, import depuis une API externe, etc).
+- Alternatives considerees:
+	- SQL INSERT direct dans initialize_schema: couple le schema et les donnees, difficile a maintenir.
+	- Seed lors d'un appel API manuel: oubli facile et data inconsistente entre environnements.
+
+## Principes SOLID appliques dans M1
 
 ### SRP - Single Responsibility Principle
 
