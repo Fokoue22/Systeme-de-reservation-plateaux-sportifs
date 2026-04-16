@@ -100,6 +100,58 @@ class ReservationService:
             items = [item for item in items if item.date_reservation == reservation_date]
         return items
 
+    def update_reservation(
+        self,
+        reservation_id: int,
+        plateau_id: int,
+        utilisateur: str,
+        reservation_date: date,
+        slot: Creneau,
+        nb_personnes: int = 1,
+    ) -> Reservation:
+        current = self.reservation_repo.get_by_id(reservation_id)
+        if current is None:
+            raise NotFoundError("Reservation introuvable.")
+        if current.statut == ReservationStatus.CANCELLED:
+            raise ConflictError("Impossible de modifier une reservation annulee.")
+
+        if current.utilisateur.strip().lower() != utilisateur.strip().lower():
+            raise ConflictError("Seul l'utilisateur proprietaire peut modifier cette reservation.")
+
+        plateau = self.plateau_repo.get_by_id(plateau_id)
+        if plateau is None:
+            raise NotFoundError("Le plateau cible n'existe pas.")
+
+        min_capacite = 1
+        max_capacite = plateau.capacite
+        if nb_personnes < min_capacite or nb_personnes > max_capacite:
+            raise ConflictError(
+                f"Le nombre de personnes doit etre entre {min_capacite} et {max_capacite} pour ce plateau."
+            )
+
+        self._ensure_half_hour_slot(slot)
+        self._ensure_availability(plateau_id, reservation_date, slot)
+
+        existing = self.reservation_repo.list_by_plateau_and_date(plateau_id, reservation_date)
+        has_overlap = any(
+            item.id != reservation_id and item.statut == ReservationStatus.CONFIRMED and _overlaps(item.creneau, slot)
+            for item in existing
+        )
+        new_status = ReservationStatus.WAITLISTED if has_overlap else ReservationStatus.CONFIRMED
+
+        updated = self.reservation_repo.update_reservation(
+            reservation_id=reservation_id,
+            plateau_id=plateau_id,
+            reservation_date=reservation_date,
+            creneau_debut=slot.debut.isoformat(timespec="minutes"),
+            creneau_fin=slot.fin.isoformat(timespec="minutes"),
+            statut=new_status,
+            nb_personnes=nb_personnes,
+        )
+        if updated is None:
+            raise NotFoundError("Reservation introuvable.")
+        return updated
+
     def cancel_reservation(self, reservation_id: int, policy: CancellationPolicy) -> Reservation:
         reservation = self.reservation_repo.get_by_id(reservation_id)
         if reservation is None:

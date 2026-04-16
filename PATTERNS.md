@@ -95,12 +95,24 @@ Portee M1 implementee:
 	- Index SQL de performance: recherches rapides sur disponibilites et reservations (plateau/date/creneau/statut, created_at).
 - app/infrastructure/repositories.py
 	- Fallback transactionnel: en cas de collision concurrente sur un creneau confirme exact, la reservation bascule automatiquement en WAITLISTED.
+	- Ajout de la mise a jour metier d'une reservation (plateau/date/creneau/statut/nb_personnes).
 - app/api/deps.py
 	- Appel du seed au demarrage via `init_schema()`.
 - app/api/m1_routes.py
 	- Provisionnement automatique des disponibilites par defaut lors de la creation d'un nouveau plateau API (M1), pour eviter un plateau non reservable apres creation.
+- app/api/m2_routes.py
+	- Endpoint d'edition de reservation (`PUT /m2/reservations/{id}`).
+- app/application/m2_services.py
+	- Regles metier d'edition: verif proprietaire, capacite, disponibilite et recalcul CONFIRMED/WAITLISTED.
+- app/domain/repositories.py
+	- Extension du contrat `ReservationRepository` avec `update_reservation`.
 - static/js/calendar.js
 	- Alignement UX/API des messages d'erreur: mapping des details backend (409/422) vers des messages utilisateur coherents en creation/annulation de reservation.
+	- Section "Mes reservations" (liste par date), actions crayon/poubelle sur ses cartes et mode edition via formulaire.
+- templates/calendar.html
+	- Ajout de la section "Mes reservations" dans la colonne de droite.
+- static/css/calendar.css
+	- Styles de la section "Mes reservations", actions de cartes et double etiquetage haut/bas des colonnes.
 - PATTERNS.md
 	- Documentation des patterns et ajout de la trace des fichiers modifies.
 

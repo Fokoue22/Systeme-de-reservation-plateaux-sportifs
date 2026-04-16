@@ -227,6 +227,37 @@ class SQLiteReservationRepository(ReservationRepository):
             ).fetchall()
         return [self._row_to_reservation(row) for row in rows if row is not None]
 
+    def update_reservation(
+        self,
+        reservation_id: int,
+        plateau_id: int,
+        reservation_date: date,
+        creneau_debut: str,
+        creneau_fin: str,
+        statut: ReservationStatus,
+        nb_personnes: int,
+    ) -> Reservation | None:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                """
+                UPDATE reservations
+                SET plateau_id = ?, date_reservation = ?, heure_debut = ?, heure_fin = ?, statut = ?, nb_personnes = ?
+                WHERE id = ?
+                """,
+                (
+                    plateau_id,
+                    reservation_date.isoformat(),
+                    creneau_debut,
+                    creneau_fin,
+                    statut.value,
+                    nb_personnes,
+                    reservation_id,
+                ),
+            )
+        if cursor.rowcount == 0:
+            return None
+        return self.get_by_id(reservation_id)
+
     def update_status(self, reservation_id: int, status: ReservationStatus) -> Reservation | None:
         with self.db.connection() as conn:
             cursor = conn.execute(

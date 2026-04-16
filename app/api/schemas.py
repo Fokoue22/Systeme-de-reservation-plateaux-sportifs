@@ -51,6 +51,10 @@ class ReservationCreate(BaseModel):
     nb_personnes: int = Field(default=1, gt=0)
 
 
+class ReservationUpdate(ReservationCreate):
+    pass
+
+
 class ReservationRead(BaseModel):
     id: int
     plateau_id: int

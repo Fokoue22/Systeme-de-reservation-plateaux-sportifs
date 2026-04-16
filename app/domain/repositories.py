@@ -56,5 +56,18 @@ class ReservationRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def update_reservation(
+        self,
+        reservation_id: int,
+        plateau_id: int,
+        reservation_date: date,
+        creneau_debut: str,
+        creneau_fin: str,
+        statut: ReservationStatus,
+        nb_personnes: int,
+    ) -> Reservation | None:
+        raise NotImplementedError
+
+    @abstractmethod
     def update_status(self, reservation_id: int, status: ReservationStatus) -> Reservation | None:
         raise NotImplementedError

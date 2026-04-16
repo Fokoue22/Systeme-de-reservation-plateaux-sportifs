@@ -154,6 +154,52 @@ def test_m2_reservation_exact_conflict_goes_to_waitlist(tmp_path) -> None:
     app.dependency_overrides.clear()
 
 
+def test_m2_update_reservation_changes_slot(tmp_path) -> None:
+    client = _build_client(tmp_path)
+
+    create_plateau = client.post(
+        "/m1/plateaux",
+        json={
+            "nom": "Edit Court",
+            "type_sport": "Tennis",
+            "capacite": 4,
+            "emplacement": "Zone Edit",
+        },
+    )
+    assert create_plateau.status_code == 201
+    plateau_id = create_plateau.json()["id"]
+
+    monday = _next_weekday(0)
+    created = client.post(
+        "/m2/reservations",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "editor",
+            "date_reservation": monday.isoformat(),
+            "creneau": {"debut": "09:00:00", "fin": "09:30:00"},
+            "nb_personnes": 2,
+        },
+    )
+    assert created.status_code == 201
+    reservation_id = created.json()["id"]
+
+    updated = client.put(
+        f"/m2/reservations/{reservation_id}",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "editor",
+            "date_reservation": monday.isoformat(),
+            "creneau": {"debut": "10:00:00", "fin": "10:30:00"},
+            "nb_personnes": 3,
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["creneau"]["debut"] == "10:00:00"
+    assert updated.json()["nb_personnes"] == 3
+
+    app.dependency_overrides.clear()
+
+
 def test_m2_reservation_rejects_outside_availability(tmp_path) -> None:
     client = _build_client(tmp_path)
 

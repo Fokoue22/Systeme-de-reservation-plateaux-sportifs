@@ -261,6 +261,19 @@ body {
   font-size: 13px;
 }
 
+.lane-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background: #f7f8fb;
+  border-top: 1px solid var(--line);
+  padding: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .booking {
   position: absolute;
   left: 6px;
@@ -291,6 +304,29 @@ body {
 
 .booking .user {
   font-weight: 700;
+}
+
+.booking-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.booking-action {
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.booking-action:hover {
+  background: rgba(255, 255, 255, 0.24);
 }
 
 .booking-panel {
@@ -367,6 +403,51 @@ select {
   margin-top: 16px;
   border-top: 1px solid var(--line);
   padding-top: 12px;
+}
+
+.my-reservations {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.my-reservations-list {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid #d9deea;
+  border-radius: 10px;
+  background: #fafbfd;
+  padding: 10px;
+}
+
+.my-reservation-day {
+  margin-bottom: 12px;
+}
+
+.my-reservation-day:last-child {
+  margin-bottom: 0;
+}
+
+.my-reservation-day h4 {
+  margin: 0 0 6px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 17px;
+}
+
+.my-reservation-item {
+  font-size: 17px;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.my-reservation-item:last-child {
+  margin-bottom: 0;
+}
+
+.empty-state {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .dot {

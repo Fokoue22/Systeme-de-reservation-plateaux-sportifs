@@ -15,6 +15,8 @@ const capacityMaxEl = document.getElementById("capacityMax");
 const plateauSelectNode = bookingFormEl.elements.namedItem("plateau_id");
 const arrivalSelectEl = document.getElementById("arrivalSelect");
 const departureSelectEl = document.getElementById("departureSelect");
+const myReservationsListEl = document.getElementById("myReservationsList");
+const submitBtnEl = bookingFormEl.querySelector("button[type='submit']");
 
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -24,8 +26,10 @@ const LANE_HEADER_HEIGHT = 34;
 
 let plateaux = [];
 let reservations = [];
+let allReservations = [];
 let selectedSport = "Tous";
 let currentUser = "";
+let editingReservationId = null;
 
 function isoDateToday() {
   const now = new Date();
@@ -241,7 +245,10 @@ function renderLanes() {
 
     const title = document.createElement("div");
     title.className = "lane-title";
-    title.textContent = displayData.labelsById.get(plateau.id) || `${capitalizeWords(plateau.type_sport)} - ${plateau.nom} - ${plateau.emplacement}`;
+    const laneLabel =
+      displayData.labelsById.get(plateau.id) ||
+      `${capitalizeWords(plateau.type_sport)} - ${plateau.nom} - ${plateau.emplacement}`;
+    title.textContent = laneLabel;
     lane.appendChild(title);
 
     const laneReservations = reservations.filter(
@@ -256,23 +263,45 @@ function renderLanes() {
 
       const card = document.createElement("div");
       const mine = isMine(booking);
-      card.className = `booking ${reservationClass(booking)} ${mine ? "clickable" : ""}`.trim();
+      card.className = `booking ${reservationClass(booking)}`.trim();
       card.style.top = `${Math.max(top, LANE_HEADER_HEIGHT)}px`;
       card.style.height = `${Math.max(height, 24)}px`;
+      let actionsHtml = "";
+      if (mine) {
+        actionsHtml = `
+          <div class="booking-actions">
+            <button class="booking-action edit" type="button" title="Modifier la reservation" aria-label="Modifier">✏</button>
+            <button class="booking-action delete" type="button" title="Supprimer la reservation" aria-label="Supprimer">🗑</button>
+          </div>
+        `;
+      }
+
       card.innerHTML = `
         <div class="user">${booking.utilisateur}</div>
         <div>${booking.creneau.debut.slice(0, 5)} - ${booking.creneau.fin.slice(0, 5)}</div>
         <div>${mine ? "Ma reservation" : "Non disponible"}</div>
+        ${actionsHtml}
       `;
 
       if (mine) {
-        card.title = "Cliquer pour annuler cette reservation";
-        card.addEventListener("click", async () => {
+        const editBtn = card.querySelector(".booking-action.edit");
+        const deleteBtn = card.querySelector(".booking-action.delete");
+
+        editBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          startEditReservation(booking);
+        });
+
+        deleteBtn.addEventListener("click", async (event) => {
+          event.stopPropagation();
           const ok = window.confirm("Annuler cette reservation ?");
           if (!ok) return;
           try {
             await cancelReservation(booking.id);
             showFlash("Reservation annulee.", "success");
+            if (editingReservationId === booking.id) {
+              resetEditMode();
+            }
             await refreshCalendar();
           } catch (error) {
             showFlash(error.message || "Erreur lors de l'annulation", "error");
@@ -283,8 +312,92 @@ function renderLanes() {
       lane.appendChild(card);
     }
 
+
+    const footer = document.createElement("div");
+    footer.className = "lane-footer";
+    footer.textContent = laneLabel;
+    lane.appendChild(footer);
+
     lanesEl.appendChild(lane);
   }
+}
+
+function formatDateFr(value) {
+  const dateObj = new Date(`${value}T00:00:00`);
+  return new Intl.DateTimeFormat("fr-CA", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(dateObj);
+}
+
+function formatTimeFr(value) {
+  const [h, m] = value.slice(0, 5).split(":");
+  return `${h} h ${m}`;
+}
+
+function renderMyReservations() {
+  const displayData = buildPlateauDisplayData(plateaux);
+  const labelsById = displayData.labelsById;
+  const mine = allReservations
+    .filter((item) => isMine(item) && item.statut !== "CANCELLED")
+    .sort((a, b) => {
+      if (a.date_reservation !== b.date_reservation) {
+        return a.date_reservation.localeCompare(b.date_reservation);
+      }
+      return a.creneau.debut.localeCompare(b.creneau.debut);
+    });
+
+  if (!mine.length) {
+    myReservationsListEl.innerHTML = '<p class="empty-state">Aucune reservation pour le moment.</p>';
+    return;
+  }
+
+  const byDate = new Map();
+  for (const item of mine) {
+    if (!byDate.has(item.date_reservation)) {
+      byDate.set(item.date_reservation, []);
+    }
+    byDate.get(item.date_reservation).push(item);
+  }
+
+  myReservationsListEl.innerHTML = "";
+  for (const [dateValue, items] of byDate.entries()) {
+    const dayBlock = document.createElement("article");
+    dayBlock.className = "my-reservation-day";
+
+    const title = document.createElement("h4");
+    title.textContent = formatDateFr(dateValue);
+    dayBlock.appendChild(title);
+
+    for (const item of items) {
+      const line = document.createElement("p");
+      line.className = "my-reservation-item";
+      const label = labelsById.get(item.plateau_id) || `Plateau #${item.plateau_id}`;
+      line.textContent = `${formatTimeFr(item.creneau.debut)} a ${formatTimeFr(item.creneau.fin)} : ${label}`;
+      dayBlock.appendChild(line);
+    }
+
+    myReservationsListEl.appendChild(dayBlock);
+  }
+}
+
+function startEditReservation(booking) {
+  editingReservationId = booking.id;
+  plateauSelectNode.value = String(booking.plateau_id);
+  updateCapacityInfo();
+  formDateEl.value = booking.date_reservation;
+  arrivalSelectEl.value = booking.creneau.debut.slice(0, 5);
+  refreshDepartureOptions();
+  departureSelectEl.value = booking.creneau.fin.slice(0, 5);
+  peopleCountEl.value = String(booking.nb_personnes || 1);
+  submitBtnEl.textContent = "Mettre a jour la reservation";
+  showFlash("Mode edition active: modifiez les champs puis confirmez.", "success");
+}
+
+function resetEditMode() {
+  editingReservationId = null;
+  submitBtnEl.textContent = "Creer la reservation";
 }
 
 async function loadPlateaux() {
@@ -300,12 +413,19 @@ async function loadReservations() {
   reservations = await response.json();
 }
 
+async function loadAllReservations() {
+  const response = await fetch("/m2/reservations");
+  if (!response.ok) throw new Error("Impossible de charger la liste des reservations utilisateur.");
+  allReservations = await response.json();
+}
+
 async function refreshCalendar() {
   try {
-    await Promise.all([loadPlateaux(), loadReservations()]);
+    await Promise.all([loadPlateaux(), loadReservations(), loadAllReservations()]);
     renderTabs();
     renderPlateauSelect();
     renderLanes();
+    renderMyReservations();
   } catch (error) {
     showFlash(error.message || "Erreur de chargement", "error");
   }
@@ -335,6 +455,20 @@ async function cancelReservation(reservationId) {
     const data = await response.json().catch(() => ({}));
     throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de l'annulation."));
   }
+}
+
+async function updateReservation(reservationId, payload) {
+  const response = await fetch(`/m2/reservations/${reservationId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de la mise a jour de reservation."));
+  }
+  return response.json();
 }
 
 bookingFormEl.addEventListener("submit", async (event) => {
@@ -376,12 +510,16 @@ bookingFormEl.addEventListener("submit", async (event) => {
   try {
     currentUser = sanitizeUser(payload.utilisateur);
     localStorage.setItem("calendarCurrentUser", currentUser);
-    const created = await createReservation(payload);
-    if (created.statut === "WAITLISTED") {
+    const result = editingReservationId
+      ? await updateReservation(editingReservationId, payload)
+      : await createReservation(payload);
+
+    if (result.statut === "WAITLISTED") {
       showFlash("Reservation en attente: ce creneau est deja occupe.", "error");
     } else {
-      showFlash("Reservation creee avec succes.", "success");
+      showFlash(editingReservationId ? "Reservation mise a jour avec succes." : "Reservation creee avec succes.", "success");
     }
+    resetEditMode();
     await refreshCalendar();
   } catch (error) {
     showFlash(error.message || "Erreur lors de la creation", "error");
@@ -406,6 +544,7 @@ utilisateurInputEl.addEventListener("change", () => {
 
 dateInputEl.addEventListener("change", async () => {
   formDateEl.value = dateInputEl.value;
+  resetEditMode();
   await refreshCalendar();
 });
 
@@ -413,6 +552,7 @@ todayBtnEl.addEventListener("click", async () => {
   const today = isoDateToday();
   dateInputEl.value = today;
   formDateEl.value = today;
+  resetEditMode();
   await refreshCalendar();
 });
 
