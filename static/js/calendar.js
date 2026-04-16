@@ -339,8 +339,16 @@ function formatTimeFr(value) {
 function renderMyReservations() {
   const displayData = buildPlateauDisplayData(plateaux);
   const labelsById = displayData.labelsById;
+  const seen = new Set();
   const mine = allReservations
-    .filter((item) => isMine(item) && item.statut !== "CANCELLED")
+    .filter(
+      (item) =>
+        isMine(item) &&
+        item.statut === "CONFIRMED" &&
+        item.date_reservation === dateInputEl.value &&
+        !seen.has(item.id) &&
+        seen.add(item.id),
+    )
     .sort((a, b) => {
       if (a.date_reservation !== b.date_reservation) {
         return a.date_reservation.localeCompare(b.date_reservation);
