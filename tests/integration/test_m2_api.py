@@ -4,6 +4,18 @@ from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
 
+from app.api.deps import (
+    get_disponibilite_service,
+    get_plateau_service,
+    get_reservation_service,
+)
+from app.application import DisponibiliteService, PlateauService, ReservationService
+from app.infrastructure.repositories import (
+    SQLiteDisponibiliteRepository,
+    SQLitePlateauRepository,
+    SQLiteReservationRepository,
+)
+from app.infrastructure.sqlite import SQLiteManager
 from app.main import app
 
 
@@ -20,8 +32,28 @@ def _weekday_name(value: date) -> str:
     return names[value.weekday()]
 
 
-def test_m2_reservation_conflict_waitlist_and_promotion() -> None:
-    client = TestClient(app)
+def _build_client(tmp_path) -> TestClient:
+    db = SQLiteManager(tmp_path / "m2_api.db")
+    db.initialize_schema()
+    db.seed_initial_data()
+
+    plateau_repo = SQLitePlateauRepository(db)
+    disponibilite_repo = SQLiteDisponibiliteRepository(db)
+    reservation_repo = SQLiteReservationRepository(db)
+
+    plateau_service = PlateauService(plateau_repo)
+    disponibilite_service = DisponibiliteService(plateau_repo, disponibilite_repo)
+    reservation_service = ReservationService(plateau_repo, disponibilite_repo, reservation_repo)
+
+    app.dependency_overrides[get_plateau_service] = lambda: plateau_service
+    app.dependency_overrides[get_disponibilite_service] = lambda: disponibilite_service
+    app.dependency_overrides[get_reservation_service] = lambda: reservation_service
+
+    return TestClient(app)
+
+
+def test_m2_reservation_conflict_waitlist_and_promotion(tmp_path) -> None:
+    client = _build_client(tmp_path)
 
     create_plateau = client.post(
         "/m1/plateaux",
@@ -80,9 +112,62 @@ def test_m2_reservation_conflict_waitlist_and_promotion() -> None:
     assert by_id[first_id]["statut"] == "CANCELLED"
     assert by_id[second_id]["statut"] == "CONFIRMED"
 
+    app.dependency_overrides.clear()
 
-def test_m2_reservation_rejects_outside_availability() -> None:
-    client = TestClient(app)
+
+def test_m2_reservation_exact_conflict_goes_to_waitlist(tmp_path) -> None:
+    client = _build_client(tmp_path)
+
+    create_plateau = client.post(
+        "/m1/plateaux",
+        json={
+            "nom": "Exact Conflict Court",
+            "type_sport": "Tennis",
+            "capacite": 4,
+            "emplacement": "Zone X",
+        },
+    )
+    assert create_plateau.status_code == 201
+    plateau_id = create_plateau.json()["id"]
+
+    monday = _next_weekday(0)
+    add_dispo = client.post(
+        f"/m1/plateaux/{plateau_id}/disponibilites",
+        json={"jour": "MONDAY", "creneau": {"debut": "09:00:00", "fin": "12:00:00"}},
+    )
+    assert add_dispo.status_code == 201
+
+    first = client.post(
+        "/m2/reservations",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "exact_a",
+            "date_reservation": monday.isoformat(),
+            "creneau": {"debut": "10:00:00", "fin": "10:30:00"},
+            "nb_personnes": 2,
+        },
+    )
+    assert first.status_code == 201
+    assert first.json()["statut"] == "CONFIRMED"
+
+    second = client.post(
+        "/m2/reservations",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "exact_b",
+            "date_reservation": monday.isoformat(),
+            "creneau": {"debut": "10:00:00", "fin": "10:30:00"},
+            "nb_personnes": 1,
+        },
+    )
+    assert second.status_code == 201
+    assert second.json()["statut"] == "WAITLISTED"
+
+    app.dependency_overrides.clear()
+
+
+def test_m2_reservation_rejects_outside_availability(tmp_path) -> None:
+    client = _build_client(tmp_path)
 
     create_plateau = client.post(
         "/m1/plateaux",
@@ -115,9 +200,49 @@ def test_m2_reservation_rejects_outside_availability() -> None:
     )
     assert invalid_res.status_code == 409
 
+    app.dependency_overrides.clear()
 
-def test_m2_cancel_strict_24h_rejects_short_notice() -> None:
-    client = TestClient(app)
+
+def test_m2_reservation_rejects_when_capacity_exceeded(tmp_path) -> None:
+    client = _build_client(tmp_path)
+
+    create_plateau = client.post(
+        "/m1/plateaux",
+        json={
+            "nom": "Capacity Court",
+            "type_sport": "Volleyball",
+            "capacite": 6,
+            "emplacement": "Zone Cap",
+        },
+    )
+    assert create_plateau.status_code == 201
+    plateau_id = create_plateau.json()["id"]
+
+    wednesday = _next_weekday(2)
+    add_dispo = client.post(
+        f"/m1/plateaux/{plateau_id}/disponibilites",
+        json={"jour": "WEDNESDAY", "creneau": {"debut": "08:00:00", "fin": "12:00:00"}},
+    )
+    assert add_dispo.status_code == 201
+
+    invalid_res = client.post(
+        "/m2/reservations",
+        json={
+            "plateau_id": plateau_id,
+            "utilisateur": "too_many",
+            "date_reservation": wednesday.isoformat(),
+            "creneau": {"debut": "09:00:00", "fin": "09:30:00"},
+            "nb_personnes": 7,
+        },
+    )
+    assert invalid_res.status_code == 409
+    assert "doit etre entre" in invalid_res.json()["detail"]
+
+    app.dependency_overrides.clear()
+
+
+def test_m2_cancel_strict_24h_rejects_short_notice(tmp_path) -> None:
+    client = _build_client(tmp_path)
 
     create_plateau = client.post(
         "/m1/plateaux",
@@ -153,9 +278,11 @@ def test_m2_cancel_strict_24h_rejects_short_notice() -> None:
     cancel_response = client.post(f"/m2/reservations/{reservation_id}/cancel?policy=STRICT_24H")
     assert cancel_response.status_code == 409
 
+    app.dependency_overrides.clear()
 
-def test_m2_cancel_strict_24h_allows_early_cancellation() -> None:
-    client = TestClient(app)
+
+def test_m2_cancel_strict_24h_allows_early_cancellation(tmp_path) -> None:
+    client = _build_client(tmp_path)
 
     create_plateau = client.post(
         "/m1/plateaux",
@@ -191,3 +318,5 @@ def test_m2_cancel_strict_24h_allows_early_cancellation() -> None:
     cancel_response = client.post(f"/m2/reservations/{reservation_id}/cancel?policy=STRICT_24H")
     assert cancel_response.status_code == 200
     assert cancel_response.json()["statut"] == "CANCELLED"
+
+    app.dependency_overrides.clear()
