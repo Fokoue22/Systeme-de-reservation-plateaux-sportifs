@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from datetime import date, datetime, time
 
 from app.domain.models import Creneau, Disponibilite, Plateau, Reservation, ReservationStatus, WeekDay
@@ -136,31 +137,56 @@ class SQLiteReservationRepository(ReservationRepository):
 
     def create(self, reservation: Reservation) -> Reservation:
         with self.db.connection() as conn:
-            cursor = conn.execute(
-                """
-                INSERT INTO reservations (
-                    plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    reservation.plateau_id,
-                    reservation.utilisateur,
-                    reservation.date_reservation.isoformat(),
-                    reservation.creneau.debut.isoformat(timespec="minutes"),
-                    reservation.creneau.fin.isoformat(timespec="minutes"),
-                    reservation.statut.value,
-                    reservation.nb_personnes,
-                    reservation.created_at.isoformat(),
-                ),
-            )
-            created_id = int(cursor.lastrowid)
+            try:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO reservations (
+                        plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        reservation.plateau_id,
+                        reservation.utilisateur,
+                        reservation.date_reservation.isoformat(),
+                        reservation.creneau.debut.isoformat(timespec="minutes"),
+                        reservation.creneau.fin.isoformat(timespec="minutes"),
+                        reservation.statut.value,
+                        reservation.nb_personnes,
+                        reservation.created_at.isoformat(),
+                    ),
+                )
+                created_id = int(cursor.lastrowid)
+                created_status = reservation.statut
+            except sqlite3.IntegrityError as exc:
+                if reservation.statut != ReservationStatus.CONFIRMED:
+                    raise
+                cursor = conn.execute(
+                    """
+                    INSERT INTO reservations (
+                        plateau_id, utilisateur, date_reservation, heure_debut, heure_fin, statut, nb_personnes, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        reservation.plateau_id,
+                        reservation.utilisateur,
+                        reservation.date_reservation.isoformat(),
+                        reservation.creneau.debut.isoformat(timespec="minutes"),
+                        reservation.creneau.fin.isoformat(timespec="minutes"),
+                        ReservationStatus.WAITLISTED.value,
+                        reservation.nb_personnes,
+                        reservation.created_at.isoformat(),
+                    ),
+                )
+                created_id = int(cursor.lastrowid)
+                created_status = ReservationStatus.WAITLISTED
+
         return Reservation(
             id=created_id,
             plateau_id=reservation.plateau_id,
             utilisateur=reservation.utilisateur,
             date_reservation=reservation.date_reservation,
             creneau=reservation.creneau,
-            statut=reservation.statut,
+            statut=created_status,
             nb_personnes=reservation.nb_personnes,
             created_at=reservation.created_at,
         )

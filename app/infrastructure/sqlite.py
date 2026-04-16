@@ -77,6 +77,13 @@ class SQLiteManager:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_confirmed_exact_slot
+                ON reservations (plateau_id, date_reservation, heure_debut, heure_fin)
+                WHERE statut = 'CONFIRMED'
+                """
+            )
 
             columns = {row["name"] for row in conn.execute("PRAGMA table_info(reservations)").fetchall()}
             if "nb_personnes" not in columns:

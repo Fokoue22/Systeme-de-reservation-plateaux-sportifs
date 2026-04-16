@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from datetime import date
 from datetime import time
 
-from app.domain.models import Creneau, Disponibilite, Plateau, WeekDay
-from app.infrastructure.repositories import SQLiteDisponibiliteRepository, SQLitePlateauRepository
+from app.domain.models import Creneau, Disponibilite, Plateau, Reservation, ReservationStatus, WeekDay
+from app.infrastructure.repositories import (
+    SQLiteDisponibiliteRepository,
+    SQLitePlateauRepository,
+    SQLiteReservationRepository,
+)
 from app.infrastructure.sqlite import SQLiteManager
 
 
@@ -78,3 +83,47 @@ def test_sqlite_disponibilite_repository_create_and_list(tmp_path) -> None:
     assert items[0].jour == WeekDay.WEDNESDAY
     assert items[0].creneau.debut == time(9, 0)
     assert items[0].creneau.fin == time(11, 0)
+
+
+def test_sqlite_reservation_exact_slot_conflict_falls_back_to_waitlist(tmp_path) -> None:
+    db = SQLiteManager(tmp_path / "m2_repo.db")
+    db.initialize_schema()
+
+    plateau_repo = SQLitePlateauRepository(db)
+    reservation_repo = SQLiteReservationRepository(db)
+
+    plateau = plateau_repo.create(
+        Plateau(
+            id=None,
+            nom="Court Exact",
+            type_sport="Tennis",
+            capacite=4,
+            emplacement="Zone Test",
+        )
+    )
+
+    first = reservation_repo.create(
+        Reservation(
+            id=None,
+            plateau_id=plateau.id or 0,
+            utilisateur="alice",
+            date_reservation=date(2026, 4, 20),
+            creneau=Creneau(debut=time(10, 0), fin=time(10, 30)),
+            statut=ReservationStatus.CONFIRMED,
+            nb_personnes=1,
+        )
+    )
+    assert first.statut == ReservationStatus.CONFIRMED
+
+    second = reservation_repo.create(
+        Reservation(
+            id=None,
+            plateau_id=plateau.id or 0,
+            utilisateur="bob",
+            date_reservation=date(2026, 4, 20),
+            creneau=Creneau(debut=time(10, 0), fin=time(10, 30)),
+            statut=ReservationStatus.CONFIRMED,
+            nb_personnes=1,
+        )
+    )
+    assert second.statut == ReservationStatus.WAITLISTED
