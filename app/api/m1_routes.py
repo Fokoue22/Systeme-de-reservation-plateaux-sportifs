@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import time
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.application import ConflictError, DisponibiliteService, NotFoundError, PlateauService
-from app.domain.models import Creneau
+from app.domain.models import Creneau, WeekDay
 
 from .deps import get_disponibilite_service, get_plateau_service
 
@@ -17,11 +19,22 @@ from .schemas import (
 
 router = APIRouter(prefix="/m1", tags=["M1 - Gestion des plateaux"])
 
+_DEFAULT_WEEK_DAYS = [
+    WeekDay.MONDAY,
+    WeekDay.TUESDAY,
+    WeekDay.WEDNESDAY,
+    WeekDay.THURSDAY,
+    WeekDay.FRIDAY,
+    WeekDay.SATURDAY,
+    WeekDay.SUNDAY,
+]
+
 
 @router.post("/plateaux", response_model=PlateauRead, status_code=status.HTTP_201_CREATED)
 def create_plateau(
     payload: PlateauCreate,
     service: PlateauService = Depends(get_plateau_service),
+    disponibilite_service: DisponibiliteService = Depends(get_disponibilite_service),
 ) -> PlateauRead:
     plateau = service.create_plateau(
         nom=payload.nom,
@@ -29,6 +42,19 @@ def create_plateau(
         capacite=payload.capacite,
         emplacement=payload.emplacement,
     )
+
+    # Provision default weekly availability at creation time so the plateau is immediately bookable.
+    for day in _DEFAULT_WEEK_DAYS:
+        try:
+            disponibilite_service.add_disponibilite(
+                plateau_id=plateau.id or 0,
+                jour=day,
+                creneau=Creneau(debut=time(8, 0), fin=time(22, 0)),
+            )
+        except ConflictError:
+            # Idempotent behavior if defaults already exist.
+            continue
+
     return PlateauRead(**plateau.__dict__)
 
 

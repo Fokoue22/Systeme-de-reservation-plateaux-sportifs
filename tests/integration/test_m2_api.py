@@ -69,12 +69,6 @@ def test_m2_reservation_conflict_waitlist_and_promotion(tmp_path) -> None:
 
     monday = _next_weekday(0)
 
-    add_dispo = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={"jour": "MONDAY", "creneau": {"debut": "09:00:00", "fin": "12:00:00"}},
-    )
-    assert add_dispo.status_code == 201
-
     first_res = client.post(
         "/m2/reservations",
         json={
@@ -131,12 +125,6 @@ def test_m2_reservation_exact_conflict_goes_to_waitlist(tmp_path) -> None:
     plateau_id = create_plateau.json()["id"]
 
     monday = _next_weekday(0)
-    add_dispo = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={"jour": "MONDAY", "creneau": {"debut": "09:00:00", "fin": "12:00:00"}},
-    )
-    assert add_dispo.status_code == 201
-
     first = client.post(
         "/m2/reservations",
         json={
@@ -183,19 +171,13 @@ def test_m2_reservation_rejects_outside_availability(tmp_path) -> None:
 
     tuesday = _next_weekday(1)
 
-    add_dispo = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={"jour": "TUESDAY", "creneau": {"debut": "14:00:00", "fin": "16:00:00"}},
-    )
-    assert add_dispo.status_code == 201
-
     invalid_res = client.post(
         "/m2/reservations",
         json={
             "plateau_id": plateau_id,
             "utilisateur": "charlie",
             "date_reservation": tuesday.isoformat(),
-            "creneau": {"debut": "09:00:00", "fin": "10:00:00"},
+            "creneau": {"debut": "07:00:00", "fin": "07:30:00"},
         },
     )
     assert invalid_res.status_code == 409
@@ -219,12 +201,6 @@ def test_m2_reservation_rejects_when_capacity_exceeded(tmp_path) -> None:
     plateau_id = create_plateau.json()["id"]
 
     wednesday = _next_weekday(2)
-    add_dispo = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={"jour": "WEDNESDAY", "creneau": {"debut": "08:00:00", "fin": "12:00:00"}},
-    )
-    assert add_dispo.status_code == 201
-
     invalid_res = client.post(
         "/m2/reservations",
         json={
@@ -257,19 +233,13 @@ def test_m2_cancel_strict_24h_rejects_short_notice(tmp_path) -> None:
     plateau_id = create_plateau.json()["id"]
 
     today = date.today()
-    add_dispo = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={"jour": _weekday_name(today), "creneau": {"debut": "00:00:00", "fin": "23:59:00"}},
-    )
-    assert add_dispo.status_code == 201
-
     create_res = client.post(
         "/m2/reservations",
         json={
             "plateau_id": plateau_id,
             "utilisateur": "strict_refus",
             "date_reservation": today.isoformat(),
-            "creneau": {"debut": "23:00:00", "fin": "23:30:00"},
+            "creneau": {"debut": "21:00:00", "fin": "21:30:00"},
         },
     )
     assert create_res.status_code == 201
@@ -297,12 +267,6 @@ def test_m2_cancel_strict_24h_allows_early_cancellation(tmp_path) -> None:
     plateau_id = create_plateau.json()["id"]
 
     future_day = date.today() + timedelta(days=3)
-    add_dispo = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={"jour": _weekday_name(future_day), "creneau": {"debut": "08:00:00", "fin": "20:00:00"}},
-    )
-    assert add_dispo.status_code == 201
-
     create_res = client.post(
         "/m2/reservations",
         json={

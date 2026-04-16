@@ -60,14 +60,10 @@ def test_plateau_crud_and_disponibilite_flow(tmp_path) -> None:
     assert update_response.status_code == 200
     assert update_response.json()["capacite"] == 20
 
-    add_dispo_response = client.post(
-        f"/m1/plateaux/{plateau_id}/disponibilites",
-        json={
-            "jour": "MONDAY",
-            "creneau": {"debut": "09:00:00", "fin": "11:00:00"},
-        },
-    )
-    assert add_dispo_response.status_code == 201
+    # Default weekly availability is auto-provisioned at plateau creation.
+    list_dispo_response = client.get(f"/m1/plateaux/{plateau_id}/disponibilites")
+    assert list_dispo_response.status_code == 200
+    assert len(list_dispo_response.json()) == 7
 
     conflict_response = client.post(
         f"/m1/plateaux/{plateau_id}/disponibilites",
@@ -77,10 +73,6 @@ def test_plateau_crud_and_disponibilite_flow(tmp_path) -> None:
         },
     )
     assert conflict_response.status_code == 409
-
-    list_dispo_response = client.get(f"/m1/plateaux/{plateau_id}/disponibilites")
-    assert list_dispo_response.status_code == 200
-    assert len(list_dispo_response.json()) == 1
 
     delete_response = client.delete(f"/m1/plateaux/{plateau_id}")
     assert delete_response.status_code == 204

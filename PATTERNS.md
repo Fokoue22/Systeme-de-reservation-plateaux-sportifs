@@ -96,6 +96,8 @@ Portee M1 implementee:
 	- Fallback transactionnel: en cas de collision concurrente sur un creneau confirme exact, la reservation bascule automatiquement en WAITLISTED.
 - app/api/deps.py
 	- Appel du seed au demarrage via `init_schema()`.
+- app/api/m1_routes.py
+	- Provisionnement automatique des disponibilites par defaut lors de la creation d'un nouveau plateau API (M1), pour eviter un plateau non reservable apres creation.
 - PATTERNS.md
 	- Documentation des patterns et ajout de la trace des fichiers modifies.
 
