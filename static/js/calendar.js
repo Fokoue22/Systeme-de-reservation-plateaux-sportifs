@@ -40,6 +40,29 @@ function showFlash(message, type = "success") {
   flashEl.className = `flash ${type}`;
 }
 
+function normalizeApiErrorMessage(detail, status, fallback) {
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0];
+    if (first && typeof first.msg === "string") {
+      return `Validation invalide: ${first.msg}`;
+    }
+  }
+
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  if (status === 422) {
+    return "Validation invalide. Verifiez les champs du formulaire.";
+  }
+
+  if (status === 409) {
+    return "Conflit detecte pour ce creneau ou cette capacite.";
+  }
+
+  return fallback;
+}
+
 function toMinutes(timeValue) {
   const [h, m] = timeValue.split(":").map(Number);
   return h * 60 + m;
@@ -297,7 +320,7 @@ async function createReservation(payload) {
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || "Echec de creation de reservation.");
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de creation de reservation."));
   }
 
   return response.json();
@@ -310,7 +333,7 @@ async function cancelReservation(reservationId) {
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || "Echec de l'annulation.");
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de l'annulation."));
   }
 }
 
@@ -355,7 +378,7 @@ bookingFormEl.addEventListener("submit", async (event) => {
     localStorage.setItem("calendarCurrentUser", currentUser);
     const created = await createReservation(payload);
     if (created.statut === "WAITLISTED") {
-      showFlash("Ce creneau est deja reserve. Merci de choisir un autre horaire.", "error");
+      showFlash("Reservation en attente: ce creneau est deja occupe.", "error");
     } else {
       showFlash("Reservation creee avec succes.", "success");
     }

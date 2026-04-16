@@ -99,6 +99,8 @@ Portee M1 implementee:
 	- Appel du seed au demarrage via `init_schema()`.
 - app/api/m1_routes.py
 	- Provisionnement automatique des disponibilites par defaut lors de la creation d'un nouveau plateau API (M1), pour eviter un plateau non reservable apres creation.
+- static/js/calendar.js
+	- Alignement UX/API des messages d'erreur: mapping des details backend (409/422) vers des messages utilisateur coherents en creation/annulation de reservation.
 - PATTERNS.md
 	- Documentation des patterns et ajout de la trace des fichiers modifies.
 

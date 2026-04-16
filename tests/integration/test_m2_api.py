@@ -181,6 +181,7 @@ def test_m2_reservation_rejects_outside_availability(tmp_path) -> None:
         },
     )
     assert invalid_res.status_code == 409
+    assert "hors disponibilite" in invalid_res.json()["detail"]
 
     app.dependency_overrides.clear()
 
@@ -247,6 +248,7 @@ def test_m2_cancel_strict_24h_rejects_short_notice(tmp_path) -> None:
 
     cancel_response = client.post(f"/m2/reservations/{reservation_id}/cancel?policy=STRICT_24H")
     assert cancel_response.status_code == 409
+    assert "Politique d'annulation" in cancel_response.json()["detail"]
 
     app.dependency_overrides.clear()
 
