@@ -84,6 +84,24 @@ class SQLiteManager:
                 WHERE statut = 'CONFIRMED'
                 """
             )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_reservations_plateau_date_slot_status
+                ON reservations (plateau_id, date_reservation, heure_debut, heure_fin, statut)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_reservations_created_at
+                ON reservations (created_at)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_disponibilites_plateau_jour_slot
+                ON disponibilites (plateau_id, jour, heure_debut, heure_fin)
+                """
+            )
 
             columns = {row["name"] for row in conn.execute("PRAGMA table_info(reservations)").fetchall()}
             if "nb_personnes" not in columns:

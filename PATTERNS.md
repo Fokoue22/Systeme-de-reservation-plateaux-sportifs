@@ -92,6 +92,7 @@ Portee M1 implementee:
 	- Migration defensive des anciens noms de seed (suppression uniquement si aucune reservation liee), y compris les anciennes series piscine M4/M5.
 	- Provisionnement automatique des disponibilites par defaut pour chaque plateau (LUNDI-DIMANCHE, 08:00-22:00) pour garantir la reservation immediate.
 	- Garde-fou concurrence: contrainte unique partielle pour bloquer deux reservations CONFIRMED identiques (meme plateau/date/creneau).
+	- Index SQL de performance: recherches rapides sur disponibilites et reservations (plateau/date/creneau/statut, created_at).
 - app/infrastructure/repositories.py
 	- Fallback transactionnel: en cas de collision concurrente sur un creneau confirme exact, la reservation bascule automatiquement en WAITLISTED.
 - app/api/deps.py
