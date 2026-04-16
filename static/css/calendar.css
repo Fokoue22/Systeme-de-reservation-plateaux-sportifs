@@ -240,6 +240,7 @@ body {
   border-right: 1px solid var(--line);
   position: relative;
   min-height: 100%;
+  padding-bottom: 34px;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,

@@ -23,6 +23,7 @@ const END_HOUR = 22;
 const SLOT_MINUTES = 30;
 const SLOT_HEIGHT = 28;
 const LANE_HEADER_HEIGHT = 34;
+const LANE_FOOTER_HEIGHT = 34;
 
 let plateaux = [];
 let reservations = [];
@@ -165,7 +166,11 @@ function sanitizeUser(value) {
 }
 
 function isMine(booking) {
-  return currentUser && sanitizeUser(booking.utilisateur) === currentUser;
+  const activeUser = currentUser || sanitizeUser(utilisateurInputEl.value);
+  if (!currentUser && activeUser) {
+    currentUser = activeUser;
+  }
+  return activeUser && sanitizeUser(booking.utilisateur) === activeUser;
 }
 
 function renderTimeScale() {
@@ -241,7 +246,7 @@ function renderLanes() {
   for (const plateau of filtered) {
     const lane = document.createElement("div");
     lane.className = "lane";
-    lane.style.height = `${((END_HOUR - START_HOUR) * 60 / SLOT_MINUTES) * SLOT_HEIGHT + LANE_HEADER_HEIGHT}px`;
+    lane.style.height = `${((END_HOUR - START_HOUR) * 60 / SLOT_MINUTES) * SLOT_HEIGHT + LANE_HEADER_HEIGHT + LANE_FOOTER_HEIGHT}px`;
 
     const title = document.createElement("div");
     title.className = "lane-title";
@@ -323,12 +328,7 @@ function renderLanes() {
 }
 
 function formatDateFr(value) {
-  const dateObj = new Date(`${value}T00:00:00`);
-  return new Intl.DateTimeFormat("fr-CA", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(dateObj);
+  return value;
 }
 
 function formatTimeFr(value) {
@@ -374,7 +374,7 @@ function renderMyReservations() {
       const line = document.createElement("p");
       line.className = "my-reservation-item";
       const label = labelsById.get(item.plateau_id) || `Plateau #${item.plateau_id}`;
-      line.textContent = `${formatTimeFr(item.creneau.debut)} a ${formatTimeFr(item.creneau.fin)} : ${label}`;
+      line.textContent = `${item.creneau.debut.slice(0, 5)} a ${item.creneau.fin.slice(0, 5)} ${label}`;
       dayBlock.appendChild(line);
     }
 
@@ -540,6 +540,12 @@ utilisateurInputEl.addEventListener("change", () => {
     localStorage.setItem("calendarCurrentUser", currentUser);
   }
   renderLanes();
+  renderMyReservations();
+});
+
+utilisateurInputEl.addEventListener("input", () => {
+  currentUser = sanitizeUser(utilisateurInputEl.value);
+  renderMyReservations();
 });
 
 dateInputEl.addEventListener("change", async () => {
@@ -560,6 +566,9 @@ todayBtnEl.addEventListener("click", async () => {
   const today = isoDateToday();
   const rememberedUser = localStorage.getItem("calendarCurrentUser") || "";
   currentUser = sanitizeUser(rememberedUser);
+  if (!currentUser && utilisateurInputEl.value) {
+    currentUser = sanitizeUser(utilisateurInputEl.value);
+  }
   if (rememberedUser && !utilisateurInputEl.value) {
     utilisateurInputEl.value = rememberedUser;
   }
