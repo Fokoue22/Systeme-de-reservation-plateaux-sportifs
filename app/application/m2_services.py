@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from app.domain import CancellationPolicy, Creneau, Reservation, ReservationStatus, WeekDay
+from app.domain.notifications import NotificationEventType
 from app.domain.repositories import DisponibiliteRepository, PlateauRepository, ReservationRepository
 
 from .m1_services import ConflictError, NotFoundError, _overlaps
+
+if TYPE_CHECKING:
+    from .m4_services import NotificationService
 
 
 def _weekday_from_date(value: date) -> WeekDay:
@@ -27,10 +32,12 @@ class ReservationService:
         plateau_repo: PlateauRepository,
         disponibilite_repo: DisponibiliteRepository,
         reservation_repo: ReservationRepository,
+        notification_service: NotificationService | None = None,
     ):
         self.plateau_repo = plateau_repo
         self.disponibilite_repo = disponibilite_repo
         self.reservation_repo = reservation_repo
+        self.notification_service = notification_service
 
     def _ensure_half_hour_slot(self, slot: Creneau) -> None:
         valid_minutes = {0, 30}
@@ -86,7 +93,15 @@ class ReservationService:
             statut=status,
             nb_personnes=nb_personnes,
         )
-        return self.reservation_repo.create(reservation)
+        created = self.reservation_repo.create(reservation)
+        if self.notification_service is not None:
+            event_type = (
+                NotificationEventType.RESERVATION_WAITLISTED
+                if created.statut == ReservationStatus.WAITLISTED
+                else NotificationEventType.RESERVATION_CONFIRMED
+            )
+            self.notification_service.notify_reservation_event(event_type, created.id or 0)
+        return created
 
     def list_reservations(
         self,
@@ -150,6 +165,11 @@ class ReservationService:
         )
         if updated is None:
             raise NotFoundError("Reservation introuvable.")
+        if self.notification_service is not None:
+            self.notification_service.notify_reservation_event(
+                NotificationEventType.RESERVATION_UPDATED,
+                updated.id or 0,
+            )
         return updated
 
     def cancel_reservation(self, reservation_id: int, policy: CancellationPolicy) -> Reservation:
@@ -166,6 +186,12 @@ class ReservationService:
         updated = self.reservation_repo.update_status(reservation_id, ReservationStatus.CANCELLED)
         if updated is None:
             raise NotFoundError("Reservation introuvable.")
+
+        if self.notification_service is not None:
+            self.notification_service.notify_reservation_event(
+                NotificationEventType.RESERVATION_CANCELLED,
+                updated.id or 0,
+            )
 
         if reservation.statut == ReservationStatus.CONFIRMED:
             self._promote_waitlist(
@@ -186,4 +212,9 @@ class ReservationService:
         if not candidates:
             return
         next_item = candidates[0]
-        self.reservation_repo.update_status(next_item.id or 0, ReservationStatus.CONFIRMED)
+        promoted = self.reservation_repo.update_status(next_item.id or 0, ReservationStatus.CONFIRMED)
+        if promoted is not None and self.notification_service is not None:
+            self.notification_service.notify_reservation_event(
+                NotificationEventType.WAITLIST_PROMOTED,
+                promoted.id or 0,
+            )

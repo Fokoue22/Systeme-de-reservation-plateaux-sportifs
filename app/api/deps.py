@@ -45,6 +45,7 @@ def get_reservation_service() -> ReservationService:
         plateau_repo=_plateau_repo,
         disponibilite_repo=_disponibilite_repo,
         reservation_repo=_reservation_repo,
+        notification_service=get_notification_service(),
     )
 
 
