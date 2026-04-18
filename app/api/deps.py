@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from app.application import DisponibiliteService, PlateauService, ReservationService
+from app.application import DisponibiliteService, NotificationService, PlateauService, ReservationService
+from app.application.m4_delivery import ConsoleEmailSender, ConsoleSmsSender
 from app.infrastructure import (
     SQLiteDisponibiliteRepository,
     SQLiteManager,
+    SQLiteNotificationPreferenceRepository,
+    SQLiteNotificationRepository,
     SQLitePlateauRepository,
+    SQLiteReminderTaskRepository,
     SQLiteReservationRepository,
 )
 
@@ -12,6 +16,11 @@ _db_manager = SQLiteManager()
 _plateau_repo = SQLitePlateauRepository(_db_manager)
 _disponibilite_repo = SQLiteDisponibiliteRepository(_db_manager)
 _reservation_repo = SQLiteReservationRepository(_db_manager)
+_notification_preference_repo = SQLiteNotificationPreferenceRepository(_db_manager)
+_notification_repo = SQLiteNotificationRepository(_db_manager)
+_reminder_task_repo = SQLiteReminderTaskRepository(_db_manager)
+_email_sender = ConsoleEmailSender()
+_sms_sender = ConsoleSmsSender()
 
 
 def init_schema() -> None:
@@ -36,4 +45,16 @@ def get_reservation_service() -> ReservationService:
         plateau_repo=_plateau_repo,
         disponibilite_repo=_disponibilite_repo,
         reservation_repo=_reservation_repo,
+    )
+
+
+def get_notification_service() -> NotificationService:
+    return NotificationService(
+        preference_repo=_notification_preference_repo,
+        notification_repo=_notification_repo,
+        reminder_task_repo=_reminder_task_repo,
+        reservation_repo=_reservation_repo,
+        plateau_repo=_plateau_repo,
+        email_sender=_email_sender,
+        sms_sender=_sms_sender,
     )
