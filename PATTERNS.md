@@ -249,3 +249,99 @@ Portee M2 implementee:
 - Le module M2 introduit des regles metier evolutives (conflits, annulation, liste d'attente).
 - Les patterns Strategy et State rendent ces regles lisibles et extensibles.
 - Cette base permet de brancher M4 (notifications) sans modifier le coeur decisionnel de M2.
+
+## M4 - Notifications
+
+Portee M4 implementee:
+- Gestion des preferences de notification par utilisateur (email/SMS, recap hebdo, admin)
+- Emission de notifications sur les evenements reservation (creation, attente, annulation, modification, promotion)
+- Historique des notifications envoyees/echouees
+- Planification et execution des rappels J-1
+- Generation d'un recapitulatif hebdomadaire pour administrateurs
+
+### Pattern 9 - Adapter Pattern (delivery providers)
+
+- Emplacement:
+	- app/application/m4_delivery.py
+- Probleme resolu:
+	- Decoupler le service metier de notification des fournisseurs externes (SendGrid, Twilio, etc.).
+- Pourquoi ce pattern:
+	- `EmailSender` et `SmsSender` servent de ports.
+	- Les implementations `ConsoleEmailSender`/`ConsoleSmsSender` permettent le dev/test local sans dependance externe.
+- Alternatives considerees:
+	- Appeler directement un provider dans `NotificationService`: plus rapide au debut, mais fort couplage.
+
+### Pattern 10 - Template Method / Message Builder
+
+- Emplacement:
+	- app/application/m4_templates.py
+- Probleme resolu:
+	- Standardiser la generation de contenus notification selon le type d'evenement.
+- Pourquoi ce pattern:
+	- `build_message(...)` centralise les sujets/corps et evite les duplications.
+	- Facilite la localisation et l'evolution des formulations.
+
+### Pattern 11 - Domain Events Integration (M2 -> M4)
+
+- Emplacement:
+	- app/application/m2_services.py
+- Probleme resolu:
+	- Notifier automatiquement sans exposer la logique de notification dans les routes HTTP.
+- Pourquoi ce pattern:
+	- Le service M2 emet des appels vers M4 apres transitions metier (CONFIRMED, WAITLISTED, CANCELLED, UPDATE, PROMOTION).
+	- Conserve l'encapsulation metier dans les services applicatifs.
+
+### Fichiers modifies (traceabilite) - M4
+
+- app/domain/notifications.py
+	- Modeles domaine M4 (preferences, messages, reminder tasks, enums canal/evenement/statut).
+- app/domain/repositories.py
+	- Contrats repository M4 (preferences, notifications, reminders).
+- app/infrastructure/sqlite.py
+	- Tables M4 + indexes (notification_preferences, notifications, reminder_tasks).
+- app/infrastructure/repositories.py
+	- Implementations SQLite des repositories M4.
+- app/application/m4_delivery.py
+	- Adaptateurs d'envoi email/SMS (console/dev).
+- app/application/m4_templates.py
+	- Builder de messages par evenement reservation.
+- app/application/m4_services.py
+	- Service M4: preferences, emission, historique, rappels J-1, recap hebdo admin.
+- app/api/deps.py
+	- Injection des dependances M4 et exposition de `get_notification_service`.
+- app/api/schemas.py
+	- Schemas API M4 (preferences, notifications, resultats de jobs).
+- app/api/m4_routes.py
+	- Endpoints M4 (preferences, historique, reminders run, weekly-summary run).
+- app/main.py
+	- Enregistrement du router M4.
+- tests/integration/test_m4_api.py
+	- Tests d'integration de bout en bout M4.
+
+## Principes SOLID appliques dans M4
+
+### SRP - Single Responsibility Principle
+
+- Application:
+	- `m4_services.py`: orchestration metier de notifications
+	- `m4_delivery.py`: livraison canal
+	- `m4_templates.py`: contenu des messages
+	- repositories M4: persistence
+	- routes M4: adaptation HTTP
+
+### OCP - Open/Closed Principle
+
+- Application:
+	- Ajout d'un nouveau canal possible via nouvelle implementation de sender sans modifier le service.
+	- Ajout de nouveaux types d'evenements via enums + templates.
+
+### DIP - Dependency Inversion Principle
+
+- Application:
+	- `NotificationService` depend des abstractions repository et sender, pas de SQLite/provider concret.
+
+## Pourquoi ces choix pour M4
+
+- Le module M4 introduit des integrations externes potentiellement instables (email/SMS).
+- La separation ports/adapters + templates + orchestration rend le module testable et evolutif.
+- L'integration M2 -> M4 preserve la logique metier existante tout en ajoutant des comportements transverses (notifications).
