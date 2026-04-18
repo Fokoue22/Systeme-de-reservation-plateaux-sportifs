@@ -1,6 +1,9 @@
 from .repositories import (
 	SQLiteDisponibiliteRepository,
+	SQLiteNotificationPreferenceRepository,
+	SQLiteNotificationRepository,
 	SQLitePlateauRepository,
+	SQLiteReminderTaskRepository,
 	SQLiteReservationRepository,
 )
 from .sqlite import SQLiteManager
@@ -10,4 +13,7 @@ __all__ = [
 	"SQLitePlateauRepository",
 	"SQLiteDisponibiliteRepository",
 	"SQLiteReservationRepository",
+	"SQLiteNotificationPreferenceRepository",
+	"SQLiteNotificationRepository",
+	"SQLiteReminderTaskRepository",
 ]

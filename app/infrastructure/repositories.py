@@ -4,7 +4,22 @@ import sqlite3
 from datetime import date, datetime, time
 
 from app.domain.models import Creneau, Disponibilite, Plateau, Reservation, ReservationStatus, WeekDay
-from app.domain.repositories import DisponibiliteRepository, PlateauRepository, ReservationRepository
+from app.domain.notifications import (
+    NotificationChannel,
+    NotificationEventType,
+    NotificationMessage,
+    NotificationPreference,
+    NotificationStatus,
+    ReminderTask,
+)
+from app.domain.repositories import (
+    DisponibiliteRepository,
+    NotificationPreferenceRepository,
+    NotificationRepository,
+    PlateauRepository,
+    ReminderTaskRepository,
+    ReservationRepository,
+)
 
 from .sqlite import SQLiteManager
 
@@ -284,4 +299,247 @@ class SQLiteReservationRepository(ReservationRepository):
             statut=ReservationStatus(row["statut"]),
             nb_personnes=int(row["nb_personnes"]),
             created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+
+class SQLiteNotificationPreferenceRepository(NotificationPreferenceRepository):
+    def __init__(self, db: SQLiteManager):
+        self.db = db
+
+    def get_by_user(self, utilisateur: str) -> NotificationPreference | None:
+        with self.db.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT utilisateur, email, telephone, email_enabled, sms_enabled,
+                       weekly_summary_enabled, is_admin, created_at, updated_at
+                FROM notification_preferences
+                WHERE utilisateur = ?
+                """,
+                (utilisateur,),
+            ).fetchone()
+        if row is None:
+            return None
+        return NotificationPreference(
+            utilisateur=row["utilisateur"],
+            email=row["email"],
+            telephone=row["telephone"],
+            email_enabled=bool(row["email_enabled"]),
+            sms_enabled=bool(row["sms_enabled"]),
+            weekly_summary_enabled=bool(row["weekly_summary_enabled"]),
+            is_admin=bool(row["is_admin"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
+
+    def upsert(self, preference: NotificationPreference) -> NotificationPreference:
+        with self.db.connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO notification_preferences (
+                    utilisateur, email, telephone, email_enabled, sms_enabled,
+                    weekly_summary_enabled, is_admin, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(utilisateur) DO UPDATE SET
+                    email=excluded.email,
+                    telephone=excluded.telephone,
+                    email_enabled=excluded.email_enabled,
+                    sms_enabled=excluded.sms_enabled,
+                    weekly_summary_enabled=excluded.weekly_summary_enabled,
+                    is_admin=excluded.is_admin,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    preference.utilisateur,
+                    preference.email,
+                    preference.telephone,
+                    int(preference.email_enabled),
+                    int(preference.sms_enabled),
+                    int(preference.weekly_summary_enabled),
+                    int(preference.is_admin),
+                    preference.created_at.isoformat(),
+                    preference.updated_at.isoformat(),
+                ),
+            )
+        return self.get_by_user(preference.utilisateur) or preference
+
+    def list_admins_with_weekly_summary_enabled(self) -> list[NotificationPreference]:
+        with self.db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT utilisateur, email, telephone, email_enabled, sms_enabled,
+                       weekly_summary_enabled, is_admin, created_at, updated_at
+                FROM notification_preferences
+                WHERE is_admin = 1 AND weekly_summary_enabled = 1
+                ORDER BY utilisateur
+                """
+            ).fetchall()
+        return [
+            NotificationPreference(
+                utilisateur=row["utilisateur"],
+                email=row["email"],
+                telephone=row["telephone"],
+                email_enabled=bool(row["email_enabled"]),
+                sms_enabled=bool(row["sms_enabled"]),
+                weekly_summary_enabled=bool(row["weekly_summary_enabled"]),
+                is_admin=bool(row["is_admin"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+            )
+            for row in rows
+        ]
+
+
+class SQLiteNotificationRepository(NotificationRepository):
+    def __init__(self, db: SQLiteManager):
+        self.db = db
+
+    def create(self, message: NotificationMessage) -> NotificationMessage:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO notifications (
+                    utilisateur, channel, event_type, subject, body, status, error, created_at, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    message.utilisateur,
+                    message.channel.value,
+                    message.event_type.value,
+                    message.subject,
+                    message.body,
+                    message.status.value,
+                    message.error,
+                    message.created_at.isoformat(),
+                    message.sent_at.isoformat() if message.sent_at else None,
+                ),
+            )
+            created_id = int(cursor.lastrowid)
+        return NotificationMessage(
+            id=created_id,
+            utilisateur=message.utilisateur,
+            channel=message.channel,
+            event_type=message.event_type,
+            subject=message.subject,
+            body=message.body,
+            status=message.status,
+            error=message.error,
+            created_at=message.created_at,
+            sent_at=message.sent_at,
+        )
+
+    def list_by_user(self, utilisateur: str, limit: int = 100) -> list[NotificationMessage]:
+        with self.db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, utilisateur, channel, event_type, subject, body, status, error, created_at, sent_at
+                FROM notifications
+                WHERE utilisateur = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """,
+                (utilisateur, limit),
+            ).fetchall()
+        return [
+            NotificationMessage(
+                id=int(row["id"]),
+                utilisateur=row["utilisateur"],
+                channel=NotificationChannel(row["channel"]),
+                event_type=NotificationEventType(row["event_type"]),
+                subject=row["subject"],
+                body=row["body"],
+                status=NotificationStatus(row["status"]),
+                error=row["error"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+                sent_at=datetime.fromisoformat(row["sent_at"]) if row["sent_at"] else None,
+            )
+            for row in rows
+        ]
+
+
+class SQLiteReminderTaskRepository(ReminderTaskRepository):
+    def __init__(self, db: SQLiteManager):
+        self.db = db
+
+    def upsert_task(self, task: ReminderTask) -> ReminderTask:
+        with self.db.connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO reminder_tasks (reservation_id, utilisateur, reminder_type, scheduled_for, sent_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(reservation_id, reminder_type) DO UPDATE SET
+                    utilisateur=excluded.utilisateur,
+                    scheduled_for=excluded.scheduled_for,
+                    sent_at=excluded.sent_at
+                """,
+                (
+                    task.reservation_id,
+                    task.utilisateur,
+                    task.reminder_type,
+                    task.scheduled_for.isoformat(),
+                    task.sent_at.isoformat() if task.sent_at else None,
+                ),
+            )
+            row = conn.execute(
+                """
+                SELECT id, reservation_id, utilisateur, reminder_type, scheduled_for, sent_at
+                FROM reminder_tasks
+                WHERE reservation_id = ? AND reminder_type = ?
+                """,
+                (task.reservation_id, task.reminder_type),
+            ).fetchone()
+        return ReminderTask(
+            id=int(row["id"]),
+            reservation_id=int(row["reservation_id"]),
+            utilisateur=row["utilisateur"],
+            reminder_type=row["reminder_type"],
+            scheduled_for=datetime.fromisoformat(row["scheduled_for"]),
+            sent_at=datetime.fromisoformat(row["sent_at"]) if row["sent_at"] else None,
+        )
+
+    def list_due_tasks(self, now_utc: str) -> list[ReminderTask]:
+        with self.db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, reservation_id, utilisateur, reminder_type, scheduled_for, sent_at
+                FROM reminder_tasks
+                WHERE sent_at IS NULL AND scheduled_for <= ?
+                ORDER BY scheduled_for, id
+                """,
+                (now_utc,),
+            ).fetchall()
+        return [
+            ReminderTask(
+                id=int(row["id"]),
+                reservation_id=int(row["reservation_id"]),
+                utilisateur=row["utilisateur"],
+                reminder_type=row["reminder_type"],
+                scheduled_for=datetime.fromisoformat(row["scheduled_for"]),
+                sent_at=None,
+            )
+            for row in rows
+        ]
+
+    def mark_sent(self, task_id: int, sent_at_utc: str) -> ReminderTask | None:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                "UPDATE reminder_tasks SET sent_at = ? WHERE id = ?",
+                (sent_at_utc, task_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+            row = conn.execute(
+                """
+                SELECT id, reservation_id, utilisateur, reminder_type, scheduled_for, sent_at
+                FROM reminder_tasks
+                WHERE id = ?
+                """,
+                (task_id,),
+            ).fetchone()
+        return ReminderTask(
+            id=int(row["id"]),
+            reservation_id=int(row["reservation_id"]),
+            utilisateur=row["utilisateur"],
+            reminder_type=row["reminder_type"],
+            scheduled_for=datetime.fromisoformat(row["scheduled_for"]),
+            sent_at=datetime.fromisoformat(row["sent_at"]) if row["sent_at"] else None,
         )
