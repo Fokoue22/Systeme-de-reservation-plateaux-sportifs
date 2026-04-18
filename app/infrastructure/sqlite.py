@@ -79,6 +79,51 @@ class SQLiteManager:
             )
             conn.execute(
                 """
+                CREATE TABLE IF NOT EXISTS notification_preferences (
+                    utilisateur TEXT PRIMARY KEY,
+                    email TEXT,
+                    telephone TEXT,
+                    email_enabled INTEGER NOT NULL DEFAULT 1,
+                    sms_enabled INTEGER NOT NULL DEFAULT 0,
+                    weekly_summary_enabled INTEGER NOT NULL DEFAULT 0,
+                    is_admin INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    utilisateur TEXT NOT NULL,
+                    channel TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    subject TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    error TEXT,
+                    created_at TEXT NOT NULL,
+                    sent_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reminder_tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    reservation_id INTEGER NOT NULL,
+                    utilisateur TEXT NOT NULL,
+                    reminder_type TEXT NOT NULL,
+                    scheduled_for TEXT NOT NULL,
+                    sent_at TEXT,
+                    UNIQUE(reservation_id, reminder_type),
+                    FOREIGN KEY(reservation_id) REFERENCES reservations(id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute(
+                """
                 CREATE UNIQUE INDEX IF NOT EXISTS uq_confirmed_exact_slot
                 ON reservations (plateau_id, date_reservation, heure_debut, heure_fin)
                 WHERE statut = 'CONFIRMED'
@@ -100,6 +145,30 @@ class SQLiteManager:
                 """
                 CREATE INDEX IF NOT EXISTS idx_disponibilites_plateau_jour_slot
                 ON disponibilites (plateau_id, jour, heure_debut, heure_fin)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+                ON notifications (utilisateur, created_at)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_notifications_status_event
+                ON notifications (status, event_type)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_reminder_tasks_due
+                ON reminder_tasks (scheduled_for, sent_at)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_notification_preferences_weekly
+                ON notification_preferences (weekly_summary_enabled, is_admin)
                 """
             )
 
