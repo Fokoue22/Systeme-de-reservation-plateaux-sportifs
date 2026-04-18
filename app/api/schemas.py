@@ -5,6 +5,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, Field
 
 from app.domain.models import ReservationStatus, WeekDay
+from app.domain.notifications import NotificationChannel, NotificationEventType, NotificationStatus
 
 
 class PlateauCreate(BaseModel):
@@ -64,3 +65,45 @@ class ReservationRead(BaseModel):
     statut: ReservationStatus
     nb_personnes: int
     created_at: datetime
+
+
+class NotificationPreferenceUpsert(BaseModel):
+    email: str | None = None
+    telephone: str | None = None
+    email_enabled: bool = True
+    sms_enabled: bool = False
+    weekly_summary_enabled: bool = False
+    is_admin: bool = False
+
+
+class NotificationPreferenceRead(BaseModel):
+    utilisateur: str
+    email: str | None
+    telephone: str | None
+    email_enabled: bool
+    sms_enabled: bool
+    weekly_summary_enabled: bool
+    is_admin: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class NotificationRead(BaseModel):
+    id: int
+    utilisateur: str
+    channel: NotificationChannel
+    event_type: NotificationEventType
+    subject: str
+    body: str
+    status: NotificationStatus
+    error: str | None
+    created_at: datetime
+    sent_at: datetime | None
+
+
+class ReminderRunResult(BaseModel):
+    processed: int
+
+
+class WeeklySummaryRunResult(BaseModel):
+    sent: int
