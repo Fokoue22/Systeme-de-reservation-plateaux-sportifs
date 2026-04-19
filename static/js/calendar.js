@@ -276,11 +276,22 @@ async function deleteAccount(currentPassword) {
 function openSettingsModal() {
   settingsModalEl.classList.remove("hidden");
   settingsModalEl.setAttribute("aria-hidden", "false");
+  settingsBtnEl.setAttribute("aria-expanded", "true");
 }
 
 function closeSettingsModal() {
   settingsModalEl.classList.add("hidden");
   settingsModalEl.setAttribute("aria-hidden", "true");
+  settingsBtnEl.setAttribute("aria-expanded", "false");
+}
+
+function toggleSettingsModal() {
+  const isOpen = !settingsModalEl.classList.contains("hidden");
+  if (isOpen) {
+    closeSettingsModal();
+    return;
+  }
+  openSettingsModal();
 }
 
 function applyCompactMode(isCompact) {
@@ -695,12 +706,22 @@ logoutBtnEl.addEventListener("click", async () => {
   }
 });
 
-settingsBtnEl.addEventListener("click", () => {
-  openSettingsModal();
-});
+settingsBtnEl.addEventListener("click", toggleSettingsModal);
 
 settingsModalEl.querySelectorAll("[data-close-settings]").forEach((button) => {
   button.addEventListener("click", closeSettingsModal);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeSettingsModal();
+  }
+});
+
+settingsModalEl.addEventListener("click", (event) => {
+  if (event.target === settingsModalEl) {
+    closeSettingsModal();
+  }
 });
 
 supportBtnEl.addEventListener("click", () => {
