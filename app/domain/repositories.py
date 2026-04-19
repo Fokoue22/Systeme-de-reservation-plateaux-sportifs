@@ -122,7 +122,19 @@ class UserAccountRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_by_email(self, email: str) -> UserAccount | None:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_by_id(self, user_id: int) -> UserAccount | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(self, account: UserAccount) -> UserAccount:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete(self, user_id: int) -> bool:
         raise NotImplementedError
 
 
@@ -137,4 +149,8 @@ class UserSessionRepository(ABC):
 
     @abstractmethod
     def delete(self, token: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_by_user(self, user_id: int) -> int:
         raise NotImplementedError

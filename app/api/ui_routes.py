@@ -62,6 +62,6 @@ def calendar_page(
         "calendar.html",
         {
             "request": request,
-            "current_user": user.username,
+            "current_user": user.full_name or user.username,
         },
     )

@@ -16,6 +16,7 @@ app.include_router(m4_router)
 app.include_router(m5_router)
 app.include_router(ui_router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/Images", StaticFiles(directory="Images"), name="images")
 
 
 @app.on_event("startup")

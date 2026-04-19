@@ -128,6 +128,7 @@ class SQLiteManager:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL UNIQUE,
                     password_hash TEXT NOT NULL,
+                    full_name TEXT,
                     email TEXT,
                     telephone TEXT,
                     is_admin INTEGER NOT NULL DEFAULT 0,
@@ -204,6 +205,13 @@ class SQLiteManager:
             )
             conn.execute(
                 """
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_user_accounts_email_lower
+                ON user_accounts (lower(email))
+                WHERE email IS NOT NULL
+                """
+            )
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_expires
                 ON user_sessions (user_id, expires_at)
                 """
@@ -212,6 +220,10 @@ class SQLiteManager:
             columns = {row["name"] for row in conn.execute("PRAGMA table_info(reservations)").fetchall()}
             if "nb_personnes" not in columns:
                 conn.execute("ALTER TABLE reservations ADD COLUMN nb_personnes INTEGER NOT NULL DEFAULT 1")
+
+            user_account_columns = {row["name"] for row in conn.execute("PRAGMA table_info(user_accounts)").fetchall()}
+            if "full_name" not in user_account_columns:
+                conn.execute("ALTER TABLE user_accounts ADD COLUMN full_name TEXT")
 
     def seed_initial_data(self) -> None:
         """

@@ -89,6 +89,7 @@ class Reservation:
 @dataclass(frozen=True)
 class UserAccount:
     id: int | None
+    full_name: str | None
     username: str
     password_hash: str
     email: str | None
@@ -98,6 +99,8 @@ class UserAccount:
     updated_at: datetime = field(default_factory=datetime.utcnow)
 
     def __post_init__(self) -> None:
+        if self.full_name is not None and not self.full_name.strip():
+            raise DomainValidationError("Le nom complet ne peut pas etre vide.")
         if not self.username.strip():
             raise DomainValidationError("Le nom d'utilisateur est obligatoire.")
         if not self.password_hash.strip():

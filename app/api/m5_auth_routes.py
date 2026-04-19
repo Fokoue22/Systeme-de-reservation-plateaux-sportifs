@@ -2,10 +2,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 
-from app.application import AuthConflictError, AuthService, AuthUnauthorizedError, NotificationService
+from app.application import AuthConflictError, AuthNotFoundError, AuthService, AuthUnauthorizedError, NotificationService
 
 from .deps import get_auth_service, get_notification_service
-from .schemas import AuthLoginRequest, AuthRegisterRequest, UserAccountRead
+from .schemas import (
+    AuthAccountDeleteRequest,
+    AuthLoginRequest,
+    AuthPasswordChangeRequest,
+    AuthProfileUpdateRequest,
+    AuthRegisterRequest,
+    UserAccountRead,
+)
 
 router = APIRouter(prefix="/auth", tags=["M5 - Authentification"])
 
@@ -37,6 +44,7 @@ def register(
 ) -> UserAccountRead:
     try:
         account, session = auth_service.register(
+            full_name=payload.full_name,
             username=payload.username,
             password=payload.password,
             email=payload.email,
@@ -60,6 +68,7 @@ def register(
 
     return UserAccountRead(
         id=account.id or 0,
+        full_name=account.full_name,
         username=account.username,
         email=account.email,
         telephone=account.telephone,
@@ -83,6 +92,7 @@ def login(
 
     return UserAccountRead(
         id=account.id or 0,
+        full_name=account.full_name,
         username=account.username,
         email=account.email,
         telephone=account.telephone,
@@ -112,12 +122,113 @@ def me(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non authentifie.")
     return UserAccountRead(
         id=user.id or 0,
+        full_name=user.full_name,
         username=user.username,
         email=user.email,
         telephone=user.telephone,
         is_admin=user.is_admin,
         created_at=user.created_at,
     )
+
+
+@router.put("/me/profile", response_model=UserAccountRead)
+def update_my_profile(
+    payload: AuthProfileUpdateRequest,
+    session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+    auth_service: AuthService = Depends(get_auth_service),
+    notification_service: NotificationService = Depends(get_notification_service),
+) -> UserAccountRead:
+    user = auth_service.get_user_from_session(session_token)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non authentifie.")
+
+    try:
+        updated = auth_service.update_profile(
+            user_id=user.id or 0,
+            full_name=payload.full_name,
+            email=payload.email,
+            telephone=payload.telephone,
+        )
+    except AuthConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except AuthNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    notification_service.update_preferences(
+        utilisateur=updated.username,
+        email=updated.email,
+        telephone=updated.telephone,
+        email_enabled=True,
+        sms_enabled=bool(updated.telephone),
+        weekly_summary_enabled=False,
+        is_admin=updated.is_admin,
+    )
+
+    return UserAccountRead(
+        id=updated.id or 0,
+        full_name=updated.full_name,
+        username=updated.username,
+        email=updated.email,
+        telephone=updated.telephone,
+        is_admin=updated.is_admin,
+        created_at=updated.created_at,
+    )
+
+
+@router.put("/me/password", response_model=UserAccountRead)
+def change_my_password(
+    payload: AuthPasswordChangeRequest,
+    session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> UserAccountRead:
+    user = auth_service.get_user_from_session(session_token)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non authentifie.")
+
+    try:
+        updated = auth_service.change_password(
+            user_id=user.id or 0,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+    except AuthConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except AuthUnauthorizedError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except AuthNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    return UserAccountRead(
+        id=updated.id or 0,
+        full_name=updated.full_name,
+        username=updated.username,
+        email=updated.email,
+        telephone=updated.telephone,
+        is_admin=updated.is_admin,
+        created_at=updated.created_at,
+    )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_my_account(
+    payload: AuthAccountDeleteRequest,
+    session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> Response:
+    user = auth_service.get_user_from_session(session_token)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non authentifie.")
+
+    try:
+        auth_service.delete_account(user_id=user.id or 0, current_password=payload.current_password)
+    except AuthUnauthorizedError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except AuthNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    _clear_session_cookie(response)
+    return response
 
 
 def get_optional_authenticated_username(

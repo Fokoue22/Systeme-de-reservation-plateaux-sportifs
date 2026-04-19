@@ -555,12 +555,13 @@ class SQLiteUserAccountRepository(UserAccountRepository):
         with self.db.connection() as conn:
             cursor = conn.execute(
                 """
-                INSERT INTO user_accounts (username, password_hash, email, telephone, is_admin, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_accounts (username, password_hash, full_name, email, telephone, is_admin, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     account.username,
                     account.password_hash,
+                    account.full_name,
                     account.email,
                     account.telephone,
                     int(account.is_admin),
@@ -571,6 +572,7 @@ class SQLiteUserAccountRepository(UserAccountRepository):
             created_id = int(cursor.lastrowid)
         return UserAccount(
             id=created_id,
+            full_name=account.full_name,
             username=account.username,
             password_hash=account.password_hash,
             email=account.email,
@@ -584,7 +586,7 @@ class SQLiteUserAccountRepository(UserAccountRepository):
         with self.db.connection() as conn:
             row = conn.execute(
                 """
-                SELECT id, username, password_hash, email, telephone, is_admin, created_at, updated_at
+                SELECT id, username, password_hash, full_name, email, telephone, is_admin, created_at, updated_at
                 FROM user_accounts
                 WHERE username = ?
                 """,
@@ -592,11 +594,23 @@ class SQLiteUserAccountRepository(UserAccountRepository):
             ).fetchone()
         return self._row_to_account(row)
 
+    def get_by_email(self, email: str) -> UserAccount | None:
+        with self.db.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT id, username, password_hash, full_name, email, telephone, is_admin, created_at, updated_at
+                FROM user_accounts
+                WHERE lower(email) = lower(?)
+                """,
+                (email,),
+            ).fetchone()
+        return self._row_to_account(row)
+
     def get_by_id(self, user_id: int) -> UserAccount | None:
         with self.db.connection() as conn:
             row = conn.execute(
                 """
-                SELECT id, username, password_hash, email, telephone, is_admin, created_at, updated_at
+                SELECT id, username, password_hash, full_name, email, telephone, is_admin, created_at, updated_at
                 FROM user_accounts
                 WHERE id = ?
                 """,
@@ -604,12 +618,40 @@ class SQLiteUserAccountRepository(UserAccountRepository):
             ).fetchone()
         return self._row_to_account(row)
 
+    def update(self, account: UserAccount) -> UserAccount:
+        if account.id is None:
+            raise ValueError("Un identifiant est requis pour la mise a jour.")
+        with self.db.connection() as conn:
+            conn.execute(
+                """
+                UPDATE user_accounts
+                SET full_name = ?, password_hash = ?, email = ?, telephone = ?, is_admin = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    account.full_name,
+                    account.password_hash,
+                    account.email,
+                    account.telephone,
+                    int(account.is_admin),
+                    account.updated_at.isoformat(),
+                    account.id,
+                ),
+            )
+        return self.get_by_id(account.id) or account
+
+    def delete(self, user_id: int) -> bool:
+        with self.db.connection() as conn:
+            cursor = conn.execute("DELETE FROM user_accounts WHERE id = ?", (user_id,))
+        return cursor.rowcount > 0
+
     @staticmethod
     def _row_to_account(row) -> UserAccount | None:
         if row is None:
             return None
         return UserAccount(
             id=int(row["id"]),
+            full_name=row["full_name"],
             username=row["username"],
             password_hash=row["password_hash"],
             email=row["email"],
@@ -666,3 +708,11 @@ class SQLiteUserSessionRepository(UserSessionRepository):
                 (token,),
             )
         return cursor.rowcount > 0
+
+    def delete_by_user(self, user_id: int) -> int:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                "DELETE FROM user_sessions WHERE user_id = ?",
+                (user_id,),
+            )
+        return cursor.rowcount

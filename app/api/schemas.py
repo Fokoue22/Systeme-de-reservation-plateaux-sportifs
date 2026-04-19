@@ -110,6 +110,7 @@ class WeeklySummaryRunResult(BaseModel):
 
 
 class AuthRegisterRequest(BaseModel):
+    full_name: str | None = None
     username: str = Field(min_length=3)
     password: str = Field(min_length=6)
     email: str | None = None
@@ -124,8 +125,24 @@ class AuthLoginRequest(BaseModel):
 
 class UserAccountRead(BaseModel):
     id: int
+    full_name: str | None
     username: str
     email: str | None
     telephone: str | None
     is_admin: bool
     created_at: datetime
+
+
+class AuthProfileUpdateRequest(BaseModel):
+    full_name: str = Field(min_length=1)
+    email: str | None = None
+    telephone: str | None = None
+
+
+class AuthPasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=6)
+
+
+class AuthAccountDeleteRequest(BaseModel):
+    current_password: str = Field(min_length=1)
