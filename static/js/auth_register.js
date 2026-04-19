@@ -1,5 +1,6 @@
 const registerFormEl = document.getElementById("registerForm");
 const registerFlashEl = document.getElementById("registerFlash");
+const passwordToggleButtons = document.querySelectorAll(".password-toggle");
 
 function setFlash(message, type = "error") {
   registerFlashEl.textContent = message;
@@ -31,6 +32,29 @@ async function register(payload) {
   if (!response.ok) {
     throw new Error(normalizeApiError(data.detail, response.status, "Echec de creation du compte."));
   }
+}
+
+function togglePasswordVisibility(button) {
+  const targetId = button.getAttribute("data-target");
+  if (!targetId) return;
+
+  const input = document.getElementById(targetId);
+  if (!input) return;
+
+  const visible = input.type === "text";
+  input.type = visible ? "password" : "text";
+  button.setAttribute(
+    "aria-label",
+    visible ? "Afficher le mot de passe" : "Masquer le mot de passe",
+  );
+  button.setAttribute(
+    "title",
+    visible ? "Afficher le mot de passe" : "Masquer le mot de passe",
+  );
+}
+
+for (const button of passwordToggleButtons) {
+  button.addEventListener("click", () => togglePasswordVisibility(button));
 }
 
 registerFormEl.addEventListener("submit", async (event) => {
