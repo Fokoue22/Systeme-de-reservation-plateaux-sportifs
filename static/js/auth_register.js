@@ -61,6 +61,7 @@ registerFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
   const fd = new FormData(registerFormEl);
 
+  const fullName = String(fd.get("full_name") || "").trim();
   const username = String(fd.get("username") || "").trim();
   const email = String(fd.get("email") || "").trim();
   const telephone = String(fd.get("telephone") || "").trim();
@@ -80,6 +81,7 @@ registerFormEl.addEventListener("submit", async (event) => {
 
   try {
     await register({
+      full_name: fullName,
       username,
       password,
       email,

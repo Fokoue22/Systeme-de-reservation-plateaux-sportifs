@@ -19,7 +19,18 @@ const myReservationsListEl = document.getElementById("myReservationsList");
 const submitBtnEl = bookingFormEl.querySelector("button[type='submit']");
 const profileAvatarEl = document.getElementById("profileAvatar");
 const profileNameEl = document.getElementById("profileName");
+const settingsBtnEl = document.getElementById("settingsBtn");
 const logoutBtnEl = document.getElementById("logoutBtn");
+const settingsModalEl = document.getElementById("settingsModal");
+const settingsFlashEl = document.getElementById("settingsFlash");
+const profileFormEl = document.getElementById("profileForm");
+const passwordFormEl = document.getElementById("passwordForm");
+const deleteFormEl = document.getElementById("deleteForm");
+const supportBtnEl = document.getElementById("supportBtn");
+const compactModeToggleEl = document.getElementById("compactModeToggle");
+const profileFullNameEl = document.getElementById("profileFullName");
+const profileEmailEl = document.getElementById("profileEmail");
+const profileTelephoneEl = document.getElementById("profileTelephone");
 
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -49,6 +60,11 @@ function showFlash(message, type = "success") {
   flashEl.className = `flash ${type}`;
 }
 
+function showSettingsFlash(message, type = "success") {
+  settingsFlashEl.textContent = message;
+  settingsFlashEl.className = `flash settings-flash ${type}`;
+}
+
 function initialsFromUsername(username) {
   const text = String(username || "").trim();
   if (!text) return "--";
@@ -61,14 +77,20 @@ function setAuthUi(account) {
     profileNameEl.textContent = "Invite";
     profileAvatarEl.textContent = "--";
     utilisateurInputEl.disabled = false;
+    if (profileFullNameEl) profileFullNameEl.value = "";
+    if (profileEmailEl) profileEmailEl.value = "";
+    if (profileTelephoneEl) profileTelephoneEl.value = "";
     return;
   }
 
   currentUser = sanitizeUser(account.username);
   utilisateurInputEl.value = account.username;
   utilisateurInputEl.disabled = true;
-  profileNameEl.textContent = account.username;
-  profileAvatarEl.textContent = initialsFromUsername(account.username);
+  profileNameEl.textContent = account.full_name || account.username;
+  profileAvatarEl.textContent = initialsFromUsername(account.full_name || account.username);
+  if (profileFullNameEl) profileFullNameEl.value = account.full_name || account.username;
+  if (profileEmailEl) profileEmailEl.value = account.email || "";
+  if (profileTelephoneEl) profileTelephoneEl.value = account.telephone || "";
 }
 
 function normalizeApiErrorMessage(detail, status, fallback) {
@@ -205,6 +227,65 @@ async function fetchCurrentAccount() {
     return null;
   }
   return response.json();
+}
+
+async function updateProfile(payload) {
+  const response = await fetch("/auth/me/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de mise a jour du profil."));
+  }
+  return data;
+}
+
+async function changePassword(payload) {
+  const response = await fetch("/auth/me/password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec du changement de mot de passe."));
+  }
+  return data;
+}
+
+async function deleteAccount(currentPassword) {
+  const response = await fetch("/auth/me", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ current_password: currentPassword }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok && response.status !== 204) {
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de suppression du compte."));
+  }
+}
+
+function openSettingsModal() {
+  settingsModalEl.classList.remove("hidden");
+  settingsModalEl.setAttribute("aria-hidden", "false");
+}
+
+function closeSettingsModal() {
+  settingsModalEl.classList.add("hidden");
+  settingsModalEl.setAttribute("aria-hidden", "true");
+}
+
+function applyCompactMode(isCompact) {
+  document.body.classList.toggle("compact-calendar", isCompact);
+  localStorage.setItem("calendarCompactMode", isCompact ? "1" : "0");
 }
 
 async function logoutAccount() {
@@ -614,6 +695,78 @@ logoutBtnEl.addEventListener("click", async () => {
   }
 });
 
+settingsBtnEl.addEventListener("click", () => {
+  openSettingsModal();
+});
+
+settingsModalEl.querySelectorAll("[data-close-settings]").forEach((button) => {
+  button.addEventListener("click", closeSettingsModal);
+});
+
+supportBtnEl.addEventListener("click", () => {
+  showSettingsFlash("L'aide et le support seront disponible prochainement.", "success");
+});
+
+compactModeToggleEl.addEventListener("change", () => {
+  applyCompactMode(compactModeToggleEl.checked);
+});
+
+profileFormEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fd = new FormData(profileFormEl);
+  try {
+    const updated = await updateProfile({
+      full_name: String(fd.get("full_name") || "").trim(),
+      email: String(fd.get("email") || "").trim() || null,
+      telephone: String(fd.get("telephone") || "").trim() || null,
+    });
+    setAuthUi(updated);
+    showSettingsFlash("Profil mis a jour.", "success");
+    await refreshCalendar();
+  } catch (error) {
+    showSettingsFlash(error.message || "Erreur lors de la mise a jour du profil.", "error");
+  }
+});
+
+passwordFormEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fd = new FormData(passwordFormEl);
+  const currentPassword = String(fd.get("current_password") || "");
+  const newPassword = String(fd.get("new_password") || "");
+  const confirmNewPassword = String(fd.get("confirm_new_password") || "");
+
+  if (newPassword !== confirmNewPassword) {
+    showSettingsFlash("Les nouveaux mots de passe ne correspondent pas.", "error");
+    return;
+  }
+
+  try {
+    await changePassword({ current_password: currentPassword, new_password: newPassword });
+    passwordFormEl.reset();
+    showSettingsFlash("Mot de passe mis a jour.", "success");
+  } catch (error) {
+    showSettingsFlash(error.message || "Erreur lors du changement de mot de passe.", "error");
+  }
+});
+
+deleteFormEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fd = new FormData(deleteFormEl);
+  const currentPassword = String(fd.get("current_password") || "");
+
+  const confirmed = window.confirm("Supprimer definitivement votre compte ?");
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await deleteAccount(currentPassword);
+    window.location.href = "/login";
+  } catch (error) {
+    showSettingsFlash(error.message || "Erreur lors de la suppression du compte.", "error");
+  }
+});
+
 dateInputEl.addEventListener("change", async () => {
   formDateEl.value = dateInputEl.value;
   resetEditMode();
@@ -653,6 +806,10 @@ todayBtnEl.addEventListener("click", async () => {
     window.location.href = "/login";
     return;
   }
+
+  const compactModeEnabled = localStorage.getItem("calendarCompactMode") === "1";
+  compactModeToggleEl.checked = compactModeEnabled;
+  applyCompactMode(compactModeEnabled);
 
   if (!currentAccount && utilisateurInputEl.value) {
     currentUser = sanitizeUser(utilisateurInputEl.value);

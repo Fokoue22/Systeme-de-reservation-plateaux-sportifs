@@ -506,3 +506,158 @@ select {
 .flash.error {
   color: #9a1f2f;
 }
+
+.settings-btn {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid #637087;
+  background: linear-gradient(135deg, #2c3443, #3a4354);
+  color: #f1f4fb;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  border-color: var(--accent);
+  color: #ffe39d;
+}
+
+.settings-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+body.compact-calendar .booking {
+  font-size: 11px;
+  padding: 6px;
+}
+
+body.compact-calendar .my-reservations-list {
+  max-height: 180px;
+}
+
+.settings-modal.hidden {
+  display: none;
+}
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 18, 30, 0.56);
+  backdrop-filter: blur(4px);
+}
+
+.settings-card {
+  position: relative;
+  width: min(96vw, 1120px);
+  margin: 4vh auto;
+  background: #fbfcfe;
+  border-radius: 20px;
+  border: 1px solid #d6ddea;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  padding: 18px;
+  max-height: 92vh;
+  overflow: auto;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  border-bottom: 1px solid #e3e8f2;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: #6a7388;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.settings-close {
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-section {
+  border: 1px solid #dde3ef;
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.settings-section h3 {
+  margin: 0 0 10px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.settings-form {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-text {
+  margin: 0 0 12px;
+  color: #556079;
+}
+
+.danger-zone {
+  background: linear-gradient(180deg, #fff8f8 0%, #fffdfd 100%);
+  border-color: #f0d8dc;
+}
+
+.danger {
+  color: #9a1f2f;
+}
+
+.btn.danger {
+  background: linear-gradient(135deg, #b4233b, #871c2d);
+  color: #fff1f4;
+}
+
+.toggle-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #344053;
+  font-weight: 600;
+}
+
+.settings-flash {
+  margin-top: 12px;
+}
+
+.settings-btn .icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

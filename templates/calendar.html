@@ -37,11 +37,12 @@
             <path d="M6 7.5h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z" />
           </svg>
         </button>
-        <button class="icon-btn" type="button" title="Parametres" aria-label="Parametres">
+        <button id="settingsBtn" class="settings-btn" type="button" title="Parametres pro" aria-label="Parametres pro">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="3" />
             <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6.2 6.2l1.6 1.6M16.2 16.2l1.6 1.6M17.8 6.2l-1.6 1.6M7.8 16.2l-1.6 1.6" />
           </svg>
+          <span>Parametres pro</span>
         </button>
       </div>
       <div class="top-actions">
@@ -54,6 +55,80 @@
         <button id="logoutBtn" class="btn ghost" type="button">Deconnexion</button>
       </div>
     </header>
+
+    <div id="settingsModal" class="settings-modal hidden" aria-hidden="true">
+      <div class="settings-backdrop" data-close-settings></div>
+      <section class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="settings-header">
+          <div>
+            <p class="eyebrow">Espace compte</p>
+            <h2 id="settingsTitle">Parametres du compte</h2>
+          </div>
+          <button class="icon-btn settings-close" type="button" data-close-settings aria-label="Fermer les parametres">×</button>
+        </div>
+
+        <div class="settings-grid">
+          <section class="settings-section">
+            <h3>Profil utilisateur</h3>
+            <form id="profileForm" class="settings-form">
+              <label>Nom complet
+                <input type="text" name="full_name" id="profileFullName" required />
+              </label>
+              <label>Email
+                <input type="email" name="email" id="profileEmail" />
+              </label>
+              <label>Numéro de téléphone
+                <input type="text" name="telephone" id="profileTelephone" placeholder="+1 514 000 0000" />
+              </label>
+              <button type="submit" class="btn primary">Enregistrer le profil</button>
+            </form>
+          </section>
+
+          <section class="settings-section">
+            <h3>Sécurité</h3>
+            <form id="passwordForm" class="settings-form">
+              <label>Mot de passe actuel
+                <input type="password" name="current_password" required />
+              </label>
+              <label>Nouveau mot de passe
+                <input type="password" name="new_password" minlength="6" required />
+              </label>
+              <label>Confirmer le nouveau mot de passe
+                <input type="password" name="confirm_new_password" minlength="6" required />
+              </label>
+              <button type="submit" class="btn primary">Changer le mot de passe</button>
+            </form>
+          </section>
+
+          <section class="settings-section">
+            <h3>Support & aide</h3>
+            <p class="settings-text">Accedez a l'aide ou contactez le support si besoin.</p>
+            <button id="supportBtn" class="btn secondary" type="button">FAQ / Contacter le support</button>
+          </section>
+
+          <section class="settings-section danger-zone">
+            <h3>Suppression du compte</h3>
+            <p class="settings-text danger">Cette action supprime definitivement votre compte et vos sessions actives.</p>
+            <form id="deleteForm" class="settings-form">
+              <label>Mot de passe actuel
+                <input type="password" name="current_password" required />
+              </label>
+              <button type="submit" class="btn danger">Supprimer mon compte</button>
+            </form>
+          </section>
+
+          <section class="settings-section compact-section">
+            <h3>Affichage</h3>
+            <label class="toggle-line">
+              <input id="compactModeToggle" type="checkbox" />
+              <span>Mode compact pour le calendrier</span>
+            </label>
+            <p class="settings-text">Ajuste l'espacement des cartes pour afficher plus de reservations a l'ecran.</p>
+          </section>
+        </div>
+        <p id="settingsFlash" class="flash settings-flash" role="status" aria-live="polite"></p>
+      </section>
+    </div>
 
     <main class="layout">
       <section class="calendar-panel">
@@ -113,6 +188,6 @@
       </aside>
     </main>
 
-    <script src="/static/js/calendar.js?v=20260418b" defer></script>
+    <script src="/static/js/calendar.js?v=20260419c" defer></script>
   </body>
 </html>
