@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connexion - Reservation Sportive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/auth.css?v=20260418a" />
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="auth-card auth-split">
+        <header class="auth-header">
+          <div class="brand">
+            <span class="brand-mark">RS</span>
+            <span class="brand-text">Reservation Sportive</span>
+          </div>
+          <h1>Service central d'authentification</h1>
+          <p>Connectez-vous pour acceder a la plateforme de reservation.</p>
+        </header>
+
+        <div class="split-grid">
+          <section class="panel left">
+            <h2>Connexion</h2>
+            <form id="loginForm" class="auth-form">
+              <label>Nom utilisateur
+                <input type="text" name="username" placeholder="votre identifiant" minlength="3" required />
+              </label>
+              <label>Mot de passe
+                <input type="password" name="password" placeholder="Votre mot de passe" minlength="6" required />
+              </label>
+              <button type="submit" class="btn primary">Connexion</button>
+            </form>
+            <p id="loginFlash" class="flash" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="panel right">
+            <h2>Nouvel utilisateur</h2>
+            <p class="helper">Pas encore de compte? Creez-en un pour reserver vos creneaux.</p>
+            <a class="btn secondary" href="/register">Me creer un compte</a>
+
+            <hr />
+            <h3>Besoin d'aide</h3>
+            <ul>
+              <li>Votre compte est personnel et relie a vos reservations.</li>
+              <li>Le nom de compte s'affichera dans la page principale.</li>
+              <li>Le logout est disponible dans l'entete du calendrier.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/js/auth_login.js?v=20260418a" defer></script>
+  </body>
+</html>
