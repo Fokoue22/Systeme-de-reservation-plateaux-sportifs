@@ -19,10 +19,6 @@ const myReservationsListEl = document.getElementById("myReservationsList");
 const submitBtnEl = bookingFormEl.querySelector("button[type='submit']");
 const profileAvatarEl = document.getElementById("profileAvatar");
 const profileNameEl = document.getElementById("profileName");
-const authStatusEl = document.getElementById("authStatus");
-const authFormEl = document.getElementById("authForm");
-const authModeEl = document.getElementById("authMode");
-const authSubmitBtnEl = document.getElementById("authSubmitBtn");
 const logoutBtnEl = document.getElementById("logoutBtn");
 
 const START_HOUR = 8;
@@ -64,7 +60,6 @@ function setAuthUi(account) {
   if (!account) {
     profileNameEl.textContent = "Invite";
     profileAvatarEl.textContent = "--";
-    authStatusEl.textContent = "Non connecte";
     utilisateurInputEl.disabled = false;
     return;
   }
@@ -74,7 +69,6 @@ function setAuthUi(account) {
   utilisateurInputEl.disabled = true;
   profileNameEl.textContent = account.username;
   profileAvatarEl.textContent = initialsFromUsername(account.username);
-  authStatusEl.textContent = `Connecte en tant que ${account.username}`;
 }
 
 function normalizeApiErrorMessage(detail, status, fallback) {
@@ -211,34 +205,6 @@ async function fetchCurrentAccount() {
     return null;
   }
   return response.json();
-}
-
-async function loginAccount(username, password) {
-  const response = await fetch("/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify({ username, password }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de connexion."));
-  }
-  return data;
-}
-
-async function registerAccount(payload) {
-  const response = await fetch("/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de creation du compte."));
-  }
-  return data;
 }
 
 async function logoutAccount() {
@@ -639,38 +605,10 @@ utilisateurInputEl.addEventListener("input", () => {
   renderMyReservations();
 });
 
-authModeEl.addEventListener("change", () => {
-  authSubmitBtnEl.textContent = authModeEl.value === "register" ? "Creer un compte" : "Se connecter";
-});
-
-authFormEl.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const fd = new FormData(authFormEl);
-  const mode = String(fd.get("mode") || "login");
-  const username = String(fd.get("username") || "").trim();
-  const password = String(fd.get("password") || "");
-  const email = String(fd.get("email") || "").trim();
-  const telephone = String(fd.get("telephone") || "").trim();
-
-  try {
-    const account =
-      mode === "register"
-        ? await registerAccount({ username, password, email: email || null, telephone: telephone || null })
-        : await loginAccount(username, password);
-    setAuthUi(account);
-    showFlash(mode === "register" ? "Compte cree et connecte." : "Connexion reussie.", "success");
-    await refreshCalendar();
-  } catch (error) {
-    showFlash(error.message || "Erreur d'authentification", "error");
-  }
-});
-
 logoutBtnEl.addEventListener("click", async () => {
   try {
     await logoutAccount();
-    setAuthUi(null);
-    showFlash("Deconnexion reussie.", "success");
-    await refreshCalendar();
+    window.location.href = "/login";
   } catch (error) {
     showFlash(error.message || "Erreur de deconnexion", "error");
   }
@@ -692,7 +630,6 @@ todayBtnEl.addEventListener("click", async () => {
 
 (async function bootstrap() {
   const today = isoDateToday();
-  authSubmitBtnEl.textContent = "Se connecter";
 
   dateInputEl.value = today;
   formDateEl.value = today;
@@ -707,9 +644,14 @@ todayBtnEl.addEventListener("click", async () => {
 
   try {
     const account = await fetchCurrentAccount();
+    if (!account) {
+      window.location.href = "/login";
+      return;
+    }
     setAuthUi(account);
   } catch {
-    setAuthUi(null);
+    window.location.href = "/login";
+    return;
   }
 
   if (!currentAccount && utilisateurInputEl.value) {
