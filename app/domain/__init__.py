@@ -4,7 +4,7 @@ from .cancellation_policies import (
 	Strict24hCancellationPolicy,
 )
 from .models import Creneau, Disponibilite, DomainValidationError, Plateau, WeekDay
-from .models import Reservation, ReservationStatus
+from .models import Reservation, ReservationStatus, UserAccount, UserSession
 from .notifications import (
 	NotificationChannel,
 	NotificationEventType,
@@ -20,6 +20,8 @@ from .repositories import (
 	PlateauRepository,
 	ReminderTaskRepository,
 	ReservationRepository,
+	UserAccountRepository,
+	UserSessionRepository,
 )
 
 __all__ = [
@@ -30,12 +32,16 @@ __all__ = [
 	"WeekDay",
 	"Reservation",
 	"ReservationStatus",
+	"UserAccount",
+	"UserSession",
 	"PlateauRepository",
 	"DisponibiliteRepository",
 	"ReservationRepository",
 	"NotificationPreferenceRepository",
 	"NotificationRepository",
 	"ReminderTaskRepository",
+	"UserAccountRepository",
+	"UserSessionRepository",
 	"CancellationPolicy",
 	"FlexibleCancellationPolicy",
 	"Strict24hCancellationPolicy",

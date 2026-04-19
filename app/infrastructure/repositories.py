@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, datetime, time
 
-from app.domain.models import Creneau, Disponibilite, Plateau, Reservation, ReservationStatus, WeekDay
+from app.domain.models import Creneau, Disponibilite, Plateau, Reservation, ReservationStatus, UserAccount, UserSession, WeekDay
 from app.domain.notifications import (
     NotificationChannel,
     NotificationEventType,
@@ -19,6 +19,8 @@ from app.domain.repositories import (
     PlateauRepository,
     ReminderTaskRepository,
     ReservationRepository,
+    UserAccountRepository,
+    UserSessionRepository,
 )
 
 from .sqlite import SQLiteManager
@@ -543,3 +545,124 @@ class SQLiteReminderTaskRepository(ReminderTaskRepository):
             scheduled_for=datetime.fromisoformat(row["scheduled_for"]),
             sent_at=datetime.fromisoformat(row["sent_at"]) if row["sent_at"] else None,
         )
+
+
+class SQLiteUserAccountRepository(UserAccountRepository):
+    def __init__(self, db: SQLiteManager):
+        self.db = db
+
+    def create(self, account: UserAccount) -> UserAccount:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO user_accounts (username, password_hash, email, telephone, is_admin, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    account.username,
+                    account.password_hash,
+                    account.email,
+                    account.telephone,
+                    int(account.is_admin),
+                    account.created_at.isoformat(),
+                    account.updated_at.isoformat(),
+                ),
+            )
+            created_id = int(cursor.lastrowid)
+        return UserAccount(
+            id=created_id,
+            username=account.username,
+            password_hash=account.password_hash,
+            email=account.email,
+            telephone=account.telephone,
+            is_admin=account.is_admin,
+            created_at=account.created_at,
+            updated_at=account.updated_at,
+        )
+
+    def get_by_username(self, username: str) -> UserAccount | None:
+        with self.db.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT id, username, password_hash, email, telephone, is_admin, created_at, updated_at
+                FROM user_accounts
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+        return self._row_to_account(row)
+
+    def get_by_id(self, user_id: int) -> UserAccount | None:
+        with self.db.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT id, username, password_hash, email, telephone, is_admin, created_at, updated_at
+                FROM user_accounts
+                WHERE id = ?
+                """,
+                (user_id,),
+            ).fetchone()
+        return self._row_to_account(row)
+
+    @staticmethod
+    def _row_to_account(row) -> UserAccount | None:
+        if row is None:
+            return None
+        return UserAccount(
+            id=int(row["id"]),
+            username=row["username"],
+            password_hash=row["password_hash"],
+            email=row["email"],
+            telephone=row["telephone"],
+            is_admin=bool(row["is_admin"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
+
+
+class SQLiteUserSessionRepository(UserSessionRepository):
+    def __init__(self, db: SQLiteManager):
+        self.db = db
+
+    def create(self, session: UserSession) -> UserSession:
+        with self.db.connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO user_sessions (token, user_id, created_at, expires_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    session.token,
+                    session.user_id,
+                    session.created_at.isoformat(),
+                    session.expires_at.isoformat(),
+                ),
+            )
+        return session
+
+    def get_by_token(self, token: str) -> UserSession | None:
+        with self.db.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT token, user_id, created_at, expires_at
+                FROM user_sessions
+                WHERE token = ?
+                """,
+                (token,),
+            ).fetchone()
+        if row is None:
+            return None
+        return UserSession(
+            token=row["token"],
+            user_id=int(row["user_id"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            expires_at=datetime.fromisoformat(row["expires_at"]),
+        )
+
+    def delete(self, token: str) -> bool:
+        with self.db.connection() as conn:
+            cursor = conn.execute(
+                "DELETE FROM user_sessions WHERE token = ?",
+                (token,),
+            )
+        return cursor.rowcount > 0

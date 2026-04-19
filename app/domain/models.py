@@ -84,3 +84,35 @@ class Reservation:
             raise DomainValidationError("L'utilisateur est obligatoire.")
         if self.nb_personnes <= 0:
             raise DomainValidationError("Le nombre de personnes doit etre superieur a 0.")
+
+
+@dataclass(frozen=True)
+class UserAccount:
+    id: int | None
+    username: str
+    password_hash: str
+    email: str | None
+    telephone: str | None
+    is_admin: bool = False
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
+
+    def __post_init__(self) -> None:
+        if not self.username.strip():
+            raise DomainValidationError("Le nom d'utilisateur est obligatoire.")
+        if not self.password_hash.strip():
+            raise DomainValidationError("Le hash du mot de passe est obligatoire.")
+
+
+@dataclass(frozen=True)
+class UserSession:
+    token: str
+    user_id: int
+    created_at: datetime
+    expires_at: datetime
+
+    def __post_init__(self) -> None:
+        if not self.token.strip():
+            raise DomainValidationError("Le token de session est obligatoire.")
+        if self.user_id <= 0:
+            raise DomainValidationError("L'identifiant utilisateur est invalide.")

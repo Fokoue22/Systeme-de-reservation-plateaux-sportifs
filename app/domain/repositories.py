@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 
-from .models import Disponibilite, Plateau, Reservation, ReservationStatus
+from .models import Disponibilite, Plateau, Reservation, ReservationStatus, UserAccount, UserSession
 from .notifications import NotificationMessage, NotificationPreference, ReminderTask
 
 
@@ -109,4 +109,32 @@ class ReminderTaskRepository(ABC):
 
     @abstractmethod
     def mark_sent(self, task_id: int, sent_at_utc: str) -> ReminderTask | None:
+        raise NotImplementedError
+
+
+class UserAccountRepository(ABC):
+    @abstractmethod
+    def create(self, account: UserAccount) -> UserAccount:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_username(self, username: str) -> UserAccount | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_id(self, user_id: int) -> UserAccount | None:
+        raise NotImplementedError
+
+
+class UserSessionRepository(ABC):
+    @abstractmethod
+    def create(self, session: UserSession) -> UserSession:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_token(self, token: str) -> UserSession | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete(self, token: str) -> bool:
         raise NotImplementedError

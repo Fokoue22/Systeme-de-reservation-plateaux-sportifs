@@ -124,6 +124,31 @@ class SQLiteManager:
             )
             conn.execute(
                 """
+                CREATE TABLE IF NOT EXISTS user_accounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    email TEXT,
+                    telephone TEXT,
+                    is_admin INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    token TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES user_accounts(id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute(
+                """
                 CREATE UNIQUE INDEX IF NOT EXISTS uq_confirmed_exact_slot
                 ON reservations (plateau_id, date_reservation, heure_debut, heure_fin)
                 WHERE statut = 'CONFIRMED'
@@ -169,6 +194,18 @@ class SQLiteManager:
                 """
                 CREATE INDEX IF NOT EXISTS idx_notification_preferences_weekly
                 ON notification_preferences (weekly_summary_enabled, is_admin)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_user_accounts_username
+                ON user_accounts (username)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_user_sessions_user_expires
+                ON user_sessions (user_id, expires_at)
                 """
             )
 
