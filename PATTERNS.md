@@ -115,7 +115,7 @@ Portee M5 implementee:
 - app/domain/__init__.py
 	- Exports auth domaine.
 - app/infrastructure/sqlite.py
-	- Creation des tables/index `user_accounts` et `user_sessions`, migration de `full_name`, unicite e-mail.
+	- Creation des tables/index `user_accounts` et `user_sessions`, migration de `full_name`, nettoyage des doublons d'e-mail avant la contrainte unique.
 - app/infrastructure/repositories.py
 	- Implementations SQLite des repositories auth avec recherche par e-mail, update profile et purge sessions.
 - app/infrastructure/__init__.py

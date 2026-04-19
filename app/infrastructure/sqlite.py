@@ -203,6 +203,31 @@ class SQLiteManager:
                 ON user_accounts (username)
                 """
             )
+            duplicate_email_rows = conn.execute(
+                """
+                SELECT lower(email) AS normalized_email
+                FROM user_accounts
+                WHERE email IS NOT NULL AND trim(email) <> ''
+                GROUP BY lower(email)
+                HAVING COUNT(*) > 1
+                """
+            ).fetchall()
+            for duplicate_row in duplicate_email_rows:
+                normalized_email = duplicate_row["normalized_email"]
+                duplicate_accounts = conn.execute(
+                    """
+                    SELECT id
+                    FROM user_accounts
+                    WHERE lower(email) = ?
+                    ORDER BY created_at ASC, id ASC
+                    """,
+                    (normalized_email,),
+                ).fetchall()
+                for row in duplicate_accounts[1:]:
+                    conn.execute(
+                        "UPDATE user_accounts SET email = NULL WHERE id = ?",
+                        (row["id"],),
+                    )
             conn.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS uq_user_accounts_email_lower
