@@ -48,6 +48,7 @@ def test_calendar_displays_username_when_authenticated(tmp_path) -> None:
     client, auth_service = _build_client(tmp_path)
 
     _, session = auth_service.register(
+        full_name="UI User",
         username="ui_user",
         password="secret12",
         email="ui@example.com",
@@ -61,6 +62,6 @@ def test_calendar_displays_username_when_authenticated(tmp_path) -> None:
 
     assert response.status_code == 200
     assert "Planning des plateaux" in response.text
-    assert "ui_user" in response.text
+    assert "UI User" in response.text
 
     app.dependency_overrides.clear()

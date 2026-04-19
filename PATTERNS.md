@@ -48,43 +48,100 @@ Portee M5 implementee:
 	- JWT stateless: plus flexible, mais plus de complexite (rotation/revocation) inutile a ce stade.
 	- Session memoire: simple, mais non persistante et moins robuste en redemarrage.
 
+### Pattern 12 - Uniqueness Constraint + Service Guard (email utilisateur)
+
+- Emplacement:
+	- app/infrastructure/sqlite.py
+	- app/infrastructure/repositories.py
+	- app/application/m5_auth_services.py
+	- app/api/m5_auth_routes.py
+- Probleme resolu:
+	- Empêcher qu'un second compte reutilise la meme adresse e-mail.
+- Pourquoi ce pattern:
+	- La contrainte SQL `uq_user_accounts_email_lower` protege la base meme en cas de concurrence.
+	- Le service applique aussi une verification explicite pour afficher un message metier clair avant l'erreur technique.
+- Alternatives considerees:
+	- Verifier uniquement dans l'API: insuffisant face aux acces concurrents ou aux autres points d'entree.
+	- Laisser la contrainte seule: robuste, mais l'erreur SQLite serait moins lisible pour l'utilisateur.
+
+### Pattern 13 - Account Settings Modal (UI composition)
+
+- Emplacement:
+	- templates/calendar.html
+	- static/js/calendar.js
+	- static/css/calendar.css
+- Probleme resolu:
+	- Offrir des actions compte dans l'application principale sans polluer la page de reservation.
+- Pourquoi ce pattern:
+	- Le bouton `Parametres pro` ouvre un panneau dédié avec sections distinctes (profil, securite, support, suppression, affichage).
+	- Le mode compact est une preference locale non intrusive qui améliore la lisibilite du planning.
+- Alternatives considerees:
+	- Plusieurs pages séparées pour chaque sous-action: plus lourd pour l'utilisateur et plus couteux a naviguer.
+	- Popups dispersées sur la page principale: moins coherentes et moins maintenables.
+
+### Pattern 14 - Branded Authentication Surface
+
+- Emplacement:
+	- templates/auth_login.html
+	- templates/auth_register.html
+	- static/css/auth.css
+	- app/main.py
+- Probleme resolu:
+	- Donner au service d'authentification une presentation distincte et plus immersive avant l'entree dans le calendrier.
+- Pourquoi ce pattern:
+	- Le fond visuel utilise une image du dossier `Images` avec superposition pour garder la lisibilite.
+	- L'acces a `calendar` reste protege par session; l'auth est la porte d'entree officielle.
+- Alternatives considerees:
+	- Reutiliser la page calendrier pour l'auth: plus simple, mais confond la connexion avec la reservation.
+	- Garder un fond uni: plus sobre, mais moins conforme a la demande visuelle et moins distinctif.
+
 ### Fichiers modifies (traceabilite M5)
 
 - app/application/m5_auth_services.py
 	- Nouveau service auth (register/login/logout/session, hashage scrypt).
 - app/api/m5_auth_routes.py
-	- Endpoints `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`.
+	- Endpoints `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/me/profile`, `/auth/me/password`, `/auth/me` (DELETE).
 	- Cookie de session HTTP-only `reservation_session`.
 - app/api/m2_routes.py
 	- Utilisation de l'utilisateur authentifie (si present) pour creation/mise a jour de reservation.
 - app/api/deps.py
 	- Wiring des repositories/service auth.
 - app/api/schemas.py
-	- Schemas auth (login/register/user).
+	- Schemas auth (login/register/user/profile/password/delete).
 - app/domain/models.py
-	- Ajout des entites `UserAccount` et `UserSession`.
+	- Ajout des entites `UserAccount` et `UserSession` avec `full_name`.
 - app/domain/repositories.py
-	- Contrats `UserAccountRepository` et `UserSessionRepository`.
+	- Contrats `UserAccountRepository` et `UserSessionRepository` enrichis (email, update, delete, purge sessions).
 - app/domain/__init__.py
 	- Exports auth domaine.
 - app/infrastructure/sqlite.py
-	- Creation des tables/index `user_accounts` et `user_sessions`.
+	- Creation des tables/index `user_accounts` et `user_sessions`, migration de `full_name`, unicite e-mail.
 - app/infrastructure/repositories.py
-	- Implementations SQLite des repositories auth.
+	- Implementations SQLite des repositories auth avec recherche par e-mail, update profile et purge sessions.
 - app/infrastructure/__init__.py
 	- Exports des repositories auth.
 - app/main.py
-	- Enregistrement du router M5.
+	- Enregistrement du router M5 et exposition du dossier `Images`.
 - templates/calendar.html
-	- Ajout bloc compte (connexion/inscription/deconnexion) et profil dynamique.
+	- Ajout du bouton `Parametres pro`, du modal de compte et du profil dynamique.
 - static/js/calendar.js
-	- Flow frontend auth + utilisateur courant branche sur les reservations.
+	- Flow frontend auth + utilisateur courant branche sur les reservations, panneau Parametres et mode compact.
 - static/css/calendar.css
-	- Styles du panneau compte.
+	- Styles du panneau compte, bouton pro, modal de parametres et compact mode.
+- templates/auth_login.html
+	- Page d'accueil auth avec fond image.
+- templates/auth_register.html
+	- Formulaire d'inscription avec nom complet et boutons oeil.
+- static/css/auth.css
+	- Style auth avec fond image du dossier `Images`.
+- static/js/auth_register.js
+	- Validation inscription et toggles password visibility.
+- app/api/ui_routes.py
+	- Redirections auth/calendar selon la session.
+- tests/integration/test_ui_auth_pages.py
+	- Tests de navigation auth/calendrier protégé.
 - tests/integration/test_m5_auth_api.py
-	- Tests d'integration auth + override utilisateur reserve.
-	- SQL direct dans les services: plus rapide au debut, mais fort couplage et tests plus difficiles.
-	- Active Record: pratique, mais moins adapte pour separer clairement domaine et infrastructure dans ce projet de cours.
+	- Tests d'integration auth, email unique, profil, mot de passe et suppression de compte.
 
 ### Pattern 2 - Service Layer (Application Service)
 
