@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.application import AuthService, DisponibiliteService, NotificationService, PlateauService, ReservationService
-from app.application.m4_delivery import ConsoleEmailSender, ConsoleSmsSender
+from app.application.m4_delivery import build_email_sender_from_env, build_sms_sender_from_env
 from app.infrastructure import (
     SQLiteDisponibiliteRepository,
     SQLiteManager,
@@ -23,8 +23,8 @@ _notification_repo = SQLiteNotificationRepository(_db_manager)
 _reminder_task_repo = SQLiteReminderTaskRepository(_db_manager)
 _user_account_repo = SQLiteUserAccountRepository(_db_manager)
 _user_session_repo = SQLiteUserSessionRepository(_db_manager)
-_email_sender = ConsoleEmailSender()
-_sms_sender = ConsoleSmsSender()
+_email_sender = build_email_sender_from_env()
+_sms_sender = build_sms_sender_from_env()
 
 
 def init_schema() -> None:
