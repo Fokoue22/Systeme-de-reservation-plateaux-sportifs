@@ -9,6 +9,7 @@ from app.application import ConflictError, NotFoundError, ReservationService
 from app.domain import Creneau, FlexibleCancellationPolicy, Strict24hCancellationPolicy
 
 from .deps import get_reservation_service
+from .m5_auth_routes import get_optional_authenticated_username
 from .schemas import ReservationCreate, ReservationRead, ReservationUpdate
 
 router = APIRouter(prefix="/m2", tags=["M2 - Reservation et conflits"])
@@ -23,11 +24,13 @@ class CancelPolicy(str, Enum):
 def create_reservation(
     payload: ReservationCreate,
     service: ReservationService = Depends(get_reservation_service),
+    authenticated_username: str | None = Depends(get_optional_authenticated_username),
 ) -> ReservationRead:
+    resolved_user = authenticated_username or payload.utilisateur
     try:
         reservation = service.create_reservation(
             plateau_id=payload.plateau_id,
-            utilisateur=payload.utilisateur,
+            utilisateur=resolved_user,
             reservation_date=payload.date_reservation,
             slot=Creneau(debut=payload.creneau.debut, fin=payload.creneau.fin),
             nb_personnes=payload.nb_personnes,
@@ -54,12 +57,14 @@ def update_reservation(
     reservation_id: int,
     payload: ReservationUpdate,
     service: ReservationService = Depends(get_reservation_service),
+    authenticated_username: str | None = Depends(get_optional_authenticated_username),
 ) -> ReservationRead:
+    resolved_user = authenticated_username or payload.utilisateur
     try:
         reservation = service.update_reservation(
             reservation_id=reservation_id,
             plateau_id=payload.plateau_id,
-            utilisateur=payload.utilisateur,
+            utilisateur=resolved_user,
             reservation_date=payload.date_reservation,
             slot=Creneau(debut=payload.creneau.debut, fin=payload.creneau.fin),
             nb_personnes=payload.nb_personnes,

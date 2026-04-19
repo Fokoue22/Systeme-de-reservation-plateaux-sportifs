@@ -107,3 +107,25 @@ class ReminderRunResult(BaseModel):
 
 class WeeklySummaryRunResult(BaseModel):
     sent: int
+
+
+class AuthRegisterRequest(BaseModel):
+    username: str = Field(min_length=3)
+    password: str = Field(min_length=6)
+    email: str | None = None
+    telephone: str | None = None
+    is_admin: bool = False
+
+
+class AuthLoginRequest(BaseModel):
+    username: str = Field(min_length=3)
+    password: str = Field(min_length=1)
+
+
+class UserAccountRead(BaseModel):
+    id: int
+    username: str
+    email: str | None
+    telephone: str | None
+    is_admin: bool
+    created_at: datetime
