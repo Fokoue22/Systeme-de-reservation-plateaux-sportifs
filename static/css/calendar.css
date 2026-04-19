@@ -340,6 +340,31 @@ body {
   margin: 0 0 10px;
 }
 
+.account-panel {
+  border: 1px solid #d9deea;
+  border-radius: 12px;
+  background: #f8fafd;
+  padding: 10px;
+  margin-bottom: 14px;
+}
+
+.account-panel h2 {
+  margin-bottom: 6px;
+}
+
+.auth-status {
+  margin: 0 0 10px;
+  color: #42506a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 label {
   display: block;
   font-size: 13px;

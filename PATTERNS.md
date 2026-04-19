@@ -20,6 +20,69 @@ Portee M1 implementee:
 	- La couche application manipule des abstractions (interfaces) et non du SQL direct.
 	- Les tests unitaires peuvent utiliser des repositories en memoire sans base de donnees.
 - Alternatives considerees:
+
+## M5 - Authentification et comptes
+
+Portee M5 implementee:
+- Creation de compte (register)
+- Connexion/deconnexion avec session persistante via cookie HTTP-only
+- Resolution de l'utilisateur courant (`/auth/me`)
+- Liaison compte -> preferences M4 pour email/SMS
+
+### Pattern 11 - Session-based Authentication (State + Repository)
+
+- Emplacement:
+	- app/api/m5_auth_routes.py
+	- app/application/m5_auth_services.py
+	- app/domain/models.py
+	- app/domain/repositories.py
+	- app/infrastructure/repositories.py
+	- app/infrastructure/sqlite.py
+- Probleme resolu:
+	- Identifier un utilisateur authentifie sans transmettre manuellement son identite a chaque requete.
+- Pourquoi ce pattern:
+	- Le service auth encapsule hashage de mot de passe, verification, creation/invalidation de session.
+	- Les tables `user_accounts` et `user_sessions` permettent une persistence simple et testable.
+	- Les routes M2 peuvent reutiliser l'identite de session pour verrouiller la propriete des reservations.
+- Alternatives considerees:
+	- JWT stateless: plus flexible, mais plus de complexite (rotation/revocation) inutile a ce stade.
+	- Session memoire: simple, mais non persistante et moins robuste en redemarrage.
+
+### Fichiers modifies (traceabilite M5)
+
+- app/application/m5_auth_services.py
+	- Nouveau service auth (register/login/logout/session, hashage scrypt).
+- app/api/m5_auth_routes.py
+	- Endpoints `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`.
+	- Cookie de session HTTP-only `reservation_session`.
+- app/api/m2_routes.py
+	- Utilisation de l'utilisateur authentifie (si present) pour creation/mise a jour de reservation.
+- app/api/deps.py
+	- Wiring des repositories/service auth.
+- app/api/schemas.py
+	- Schemas auth (login/register/user).
+- app/domain/models.py
+	- Ajout des entites `UserAccount` et `UserSession`.
+- app/domain/repositories.py
+	- Contrats `UserAccountRepository` et `UserSessionRepository`.
+- app/domain/__init__.py
+	- Exports auth domaine.
+- app/infrastructure/sqlite.py
+	- Creation des tables/index `user_accounts` et `user_sessions`.
+- app/infrastructure/repositories.py
+	- Implementations SQLite des repositories auth.
+- app/infrastructure/__init__.py
+	- Exports des repositories auth.
+- app/main.py
+	- Enregistrement du router M5.
+- templates/calendar.html
+	- Ajout bloc compte (connexion/inscription/deconnexion) et profil dynamique.
+- static/js/calendar.js
+	- Flow frontend auth + utilisateur courant branche sur les reservations.
+- static/css/calendar.css
+	- Styles du panneau compte.
+- tests/integration/test_m5_auth_api.py
+	- Tests d'integration auth + override utilisateur reserve.
 	- SQL direct dans les services: plus rapide au debut, mais fort couplage et tests plus difficiles.
 	- Active Record: pratique, mais moins adapte pour separer clairement domaine et infrastructure dans ce projet de cours.
 

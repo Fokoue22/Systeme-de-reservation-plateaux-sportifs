@@ -17,6 +17,13 @@ const arrivalSelectEl = document.getElementById("arrivalSelect");
 const departureSelectEl = document.getElementById("departureSelect");
 const myReservationsListEl = document.getElementById("myReservationsList");
 const submitBtnEl = bookingFormEl.querySelector("button[type='submit']");
+const profileAvatarEl = document.getElementById("profileAvatar");
+const profileNameEl = document.getElementById("profileName");
+const authStatusEl = document.getElementById("authStatus");
+const authFormEl = document.getElementById("authForm");
+const authModeEl = document.getElementById("authMode");
+const authSubmitBtnEl = document.getElementById("authSubmitBtn");
+const logoutBtnEl = document.getElementById("logoutBtn");
 
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -31,6 +38,7 @@ let allReservations = [];
 let selectedSport = "Tous";
 let currentUser = "";
 let editingReservationId = null;
+let currentAccount = null;
 
 function isoDateToday() {
   const now = new Date();
@@ -43,6 +51,30 @@ function isoDateToday() {
 function showFlash(message, type = "success") {
   flashEl.textContent = message;
   flashEl.className = `flash ${type}`;
+}
+
+function initialsFromUsername(username) {
+  const text = String(username || "").trim();
+  if (!text) return "--";
+  return text.slice(0, 2).toUpperCase();
+}
+
+function setAuthUi(account) {
+  currentAccount = account;
+  if (!account) {
+    profileNameEl.textContent = "Invite";
+    profileAvatarEl.textContent = "--";
+    authStatusEl.textContent = "Non connecte";
+    utilisateurInputEl.disabled = false;
+    return;
+  }
+
+  currentUser = sanitizeUser(account.username);
+  utilisateurInputEl.value = account.username;
+  utilisateurInputEl.disabled = true;
+  profileNameEl.textContent = account.username;
+  profileAvatarEl.textContent = initialsFromUsername(account.username);
+  authStatusEl.textContent = `Connecte en tant que ${account.username}`;
 }
 
 function normalizeApiErrorMessage(detail, status, fallback) {
@@ -171,6 +203,52 @@ function isMine(booking) {
     currentUser = activeUser;
   }
   return activeUser && sanitizeUser(booking.utilisateur) === activeUser;
+}
+
+async function fetchCurrentAccount() {
+  const response = await fetch("/auth/me", { credentials: "same-origin" });
+  if (!response.ok) {
+    return null;
+  }
+  return response.json();
+}
+
+async function loginAccount(username, password) {
+  const response = await fetch("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de connexion."));
+  }
+  return data;
+}
+
+async function registerAccount(payload) {
+  const response = await fetch("/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(normalizeApiErrorMessage(data.detail, response.status, "Echec de creation du compte."));
+  }
+  return data;
+}
+
+async function logoutAccount() {
+  const response = await fetch("/auth/logout", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    throw new Error("Echec de deconnexion.");
+  }
 }
 
 function renderTimeScale() {
@@ -504,9 +582,10 @@ bookingFormEl.addEventListener("submit", async (event) => {
     return;
   }
 
+  const resolvedUser = currentAccount ? currentAccount.username : String(fd.get("utilisateur") || "").trim();
   const payload = {
     plateau_id: Number(fd.get("plateau_id")),
-    utilisateur: String(fd.get("utilisateur") || "").trim(),
+    utilisateur: resolvedUser,
     date_reservation: String(fd.get("date_reservation")),
     nb_personnes: nbPersonnes,
     creneau: {
@@ -517,7 +596,6 @@ bookingFormEl.addEventListener("submit", async (event) => {
 
   try {
     currentUser = sanitizeUser(payload.utilisateur);
-    localStorage.setItem("calendarCurrentUser", currentUser);
     const result = editingReservationId
       ? await updateReservation(editingReservationId, payload)
       : await createReservation(payload);
@@ -543,17 +621,59 @@ arrivalSelectEl.addEventListener("change", () => {
 });
 
 utilisateurInputEl.addEventListener("change", () => {
-  currentUser = sanitizeUser(utilisateurInputEl.value);
-  if (currentUser) {
-    localStorage.setItem("calendarCurrentUser", currentUser);
+  if (currentAccount) {
+    utilisateurInputEl.value = currentAccount.username;
+    return;
   }
+  currentUser = sanitizeUser(utilisateurInputEl.value);
   renderLanes();
   renderMyReservations();
 });
 
 utilisateurInputEl.addEventListener("input", () => {
+  if (currentAccount) {
+    utilisateurInputEl.value = currentAccount.username;
+    return;
+  }
   currentUser = sanitizeUser(utilisateurInputEl.value);
   renderMyReservations();
+});
+
+authModeEl.addEventListener("change", () => {
+  authSubmitBtnEl.textContent = authModeEl.value === "register" ? "Creer un compte" : "Se connecter";
+});
+
+authFormEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fd = new FormData(authFormEl);
+  const mode = String(fd.get("mode") || "login");
+  const username = String(fd.get("username") || "").trim();
+  const password = String(fd.get("password") || "");
+  const email = String(fd.get("email") || "").trim();
+  const telephone = String(fd.get("telephone") || "").trim();
+
+  try {
+    const account =
+      mode === "register"
+        ? await registerAccount({ username, password, email: email || null, telephone: telephone || null })
+        : await loginAccount(username, password);
+    setAuthUi(account);
+    showFlash(mode === "register" ? "Compte cree et connecte." : "Connexion reussie.", "success");
+    await refreshCalendar();
+  } catch (error) {
+    showFlash(error.message || "Erreur d'authentification", "error");
+  }
+});
+
+logoutBtnEl.addEventListener("click", async () => {
+  try {
+    await logoutAccount();
+    setAuthUi(null);
+    showFlash("Deconnexion reussie.", "success");
+    await refreshCalendar();
+  } catch (error) {
+    showFlash(error.message || "Erreur de deconnexion", "error");
+  }
 });
 
 dateInputEl.addEventListener("change", async () => {
@@ -570,16 +690,9 @@ todayBtnEl.addEventListener("click", async () => {
   await refreshCalendar();
 });
 
-(function bootstrap() {
+(async function bootstrap() {
   const today = isoDateToday();
-  const rememberedUser = localStorage.getItem("calendarCurrentUser") || "";
-  currentUser = sanitizeUser(rememberedUser);
-  if (!currentUser && utilisateurInputEl.value) {
-    currentUser = sanitizeUser(utilisateurInputEl.value);
-  }
-  if (rememberedUser && !utilisateurInputEl.value) {
-    utilisateurInputEl.value = rememberedUser;
-  }
+  authSubmitBtnEl.textContent = "Se connecter";
 
   dateInputEl.value = today;
   formDateEl.value = today;
@@ -591,6 +704,18 @@ todayBtnEl.addEventListener("click", async () => {
   departureSelectEl.value = "08:30";
   peopleCountEl.step = "1";
   peopleCountEl.value = "1";
+
+  try {
+    const account = await fetchCurrentAccount();
+    setAuthUi(account);
+  } catch {
+    setAuthUi(null);
+  }
+
+  if (!currentAccount && utilisateurInputEl.value) {
+    currentUser = sanitizeUser(utilisateurInputEl.value);
+  }
+
   renderTimeScale();
-  refreshCalendar();
+  await refreshCalendar();
 })();

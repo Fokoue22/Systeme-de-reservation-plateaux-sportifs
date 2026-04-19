@@ -47,9 +47,9 @@
       <div class="top-actions">
         <button id="todayBtn" class="btn ghost">Aujourd'hui</button>
         <input id="dateInput" type="date" />
-        <button class="profile-chip" type="button" aria-label="Profil utilisateur">
-          <span class="avatar">SM</span>
-          <span>Simon Martins</span>
+        <button id="profileChip" class="profile-chip" type="button" aria-label="Profil utilisateur">
+          <span class="avatar" id="profileAvatar">--</span>
+          <span id="profileName">Invite</span>
         </button>
       </div>
     </header>
@@ -67,6 +67,39 @@
       </section>
 
       <aside class="booking-panel">
+        <section class="account-panel" id="accountPanel">
+          <h2>Compte</h2>
+          <p id="authStatus" class="auth-status">Non connecte</p>
+          <form id="authForm">
+            <div class="grid2">
+              <label>Mode
+                <select id="authMode" name="mode">
+                  <option value="login">Connexion</option>
+                  <option value="register">Inscription</option>
+                </select>
+              </label>
+              <label>Nom utilisateur
+                <input type="text" name="username" required minlength="3" />
+              </label>
+            </div>
+            <div class="grid2">
+              <label>Mot de passe
+                <input type="password" name="password" required minlength="6" />
+              </label>
+              <label>Email (optionnel)
+                <input type="email" name="email" />
+              </label>
+            </div>
+            <label>Telephone (optionnel)
+              <input type="text" name="telephone" placeholder="+15145550001" />
+            </label>
+            <div class="account-actions">
+              <button class="btn primary" type="submit" id="authSubmitBtn">Se connecter</button>
+              <button class="btn ghost" type="button" id="logoutBtn">Se deconnecter</button>
+            </div>
+          </form>
+        </section>
+
         <h2>Nouvelle reservation</h2>
         <form id="bookingForm">
           <label>Utilisateur
