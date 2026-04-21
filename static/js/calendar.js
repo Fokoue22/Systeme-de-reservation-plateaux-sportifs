@@ -395,63 +395,65 @@ function renderLanes() {
     const laneReservations = reservations.filter(
       (r) => r.plateau_id === plateau.id && r.statut === "CONFIRMED",
     );
-    for (const booking of laneReservations) {
-      const startMin = toMinutes(booking.creneau.debut.slice(0, 5));
-      const endMin = toMinutes(booking.creneau.fin.slice(0, 5));
-      const top = ((startMin - START_HOUR * 60) / SLOT_MINUTES) * SLOT_HEIGHT + LANE_HEADER_HEIGHT;
-      const height = ((endMin - startMin) / SLOT_MINUTES) * SLOT_HEIGHT;
-      if (height <= 0) continue;
+      for (const booking of laneReservations) {
+        const startMin = toMinutes(booking.creneau.debut.slice(0, 5));
+        const endMin = toMinutes(booking.creneau.fin.slice(0, 5));
+        const top = ((startMin - START_HOUR * 60) / SLOT_MINUTES) * SLOT_HEIGHT + LANE_HEADER_HEIGHT;
+        // Correction: la hauteur doit couvrir jusqu'à l'heure de fin incluse
+        const height = ((endMin - startMin) / SLOT_MINUTES) * SLOT_HEIGHT;
+        if (height <= 0) continue;
 
-      const card = document.createElement("div");
-      const mine = isMine(booking);
-      card.className = `booking ${reservationClass(booking)}`.trim();
-      card.style.top = `${Math.max(top, LANE_HEADER_HEIGHT)}px`;
-      card.style.height = `${Math.max(height, 24)}px`;
-      let actionsHtml = "";
-      if (mine) {
-        actionsHtml = `
-          <div class="booking-actions">
-            <button class="booking-action edit" type="button" title="Modifier la reservation" aria-label="Modifier">✏</button>
-            <button class="booking-action delete" type="button" title="Supprimer la reservation" aria-label="Supprimer">🗑</button>
-          </div>
+        const card = document.createElement("div");
+        const mine = isMine(booking);
+        card.className = `booking ${reservationClass(booking)}`.trim();
+        card.style.top = `${Math.max(top, LANE_HEADER_HEIGHT)}px`;
+        // Correction: ne pas soustraire 0.5 slot, la hauteur doit aller jusqu'à la ligne de fin
+        card.style.height = `${height}px`;
+        let actionsHtml = "";
+        if (mine) {
+          actionsHtml = `
+            <div class="booking-actions">
+              <button class="booking-action edit" type="button" title="Modifier la reservation" aria-label="Modifier">✏</button>
+              <button class="booking-action delete" type="button" title="Supprimer la reservation" aria-label="Supprimer">🗑</button>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="user">${booking.utilisateur}</div>
+          <div>${booking.creneau.debut.slice(0, 5)} - ${booking.creneau.fin.slice(0, 5)}</div>
+          <div>${mine ? "Ma reservation" : "Non disponible"}</div>
+          ${actionsHtml}
         `;
-      }
 
-      card.innerHTML = `
-        <div class="user">${booking.utilisateur}</div>
-        <div>${booking.creneau.debut.slice(0, 5)} - ${booking.creneau.fin.slice(0, 5)}</div>
-        <div>${mine ? "Ma reservation" : "Non disponible"}</div>
-        ${actionsHtml}
-      `;
+        if (mine) {
+          const editBtn = card.querySelector(".booking-action.edit");
+          const deleteBtn = card.querySelector(".booking-action.delete");
 
-      if (mine) {
-        const editBtn = card.querySelector(".booking-action.edit");
-        const deleteBtn = card.querySelector(".booking-action.delete");
+          editBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            startEditReservation(booking);
+          });
 
-        editBtn.addEventListener("click", (event) => {
-          event.stopPropagation();
-          startEditReservation(booking);
-        });
-
-        deleteBtn.addEventListener("click", async (event) => {
-          event.stopPropagation();
-          const ok = window.confirm("Annuler cette reservation ?");
-          if (!ok) return;
-          try {
-            await cancelReservation(booking.id);
-            showFlash("Reservation annulee.", "success");
-            if (editingReservationId === booking.id) {
-              resetEditMode();
+          deleteBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const ok = window.confirm("Annuler cette reservation ?");
+            if (!ok) return;
+            try {
+              await cancelReservation(booking.id);
+              showFlash("Reservation annulee.", "success");
+              if (editingReservationId === booking.id) {
+                resetEditMode();
+              }
+              await refreshCalendar();
+            } catch (error) {
+              showFlash(error.message || "Erreur lors de l'annulation", "error");
             }
-            await refreshCalendar();
-          } catch (error) {
-            showFlash(error.message || "Erreur lors de l'annulation", "error");
-          }
-        });
-      }
+          });
+        }
 
-      lane.appendChild(card);
-    }
+        lane.appendChild(card);
+      }
 
 
     const footer = document.createElement("div");
