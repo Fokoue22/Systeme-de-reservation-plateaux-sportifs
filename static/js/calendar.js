@@ -65,9 +65,15 @@ function showSettingsFlash(message, type = "success") {
   settingsFlashEl.className = `flash settings-flash ${type}`;
 }
 
-function initialsFromUsername(username) {
-  const text = String(username || "").trim();
+function initialsFromUsername(fullNameOrUsername) {
+  const text = String(fullNameOrUsername || "").trim();
   if (!text) return "--";
+  // Prend la première lettre du prénom et du nom si possible
+  const parts = text.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  // Si un seul mot, prendre les deux premières lettres
   return text.slice(0, 2).toUpperCase();
 }
 
