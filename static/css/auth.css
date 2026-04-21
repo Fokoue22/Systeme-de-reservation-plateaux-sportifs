@@ -18,9 +18,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    linear-gradient(135deg, rgba(14, 18, 28, 0.58), rgba(14, 18, 28, 0.28)),
-    radial-gradient(circle at 14% 8%, #f7ecd1 0%, #e5eadf 28%, #d7dde8 62%, #cfd6e2 100%);
+  background: linear-gradient(135deg, #f7ecd1 0%, #e5eadf 28%, #d7dde8 62%, #cfd6e2 100%);
   font-family: "Barlow", sans-serif;
   color: var(--ink);
 }
