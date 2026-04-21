@@ -34,7 +34,7 @@ PLATEAUX_DATA = [
     *build_plateaux_series("Piscine", "Zone Est - Semi-olympique", 30, 3),
     *build_plateaux_series("Soccer", "Zone Ouest", 22, 5),
     *build_plateaux_series("Tennis", "Zone A", 4, 3),
-    *build_plateaux_series("Tennis", "Zone B", 4, 3),
+    *build_plateaux_series("Tennis", "Zone B", 4, 5),
     *build_plateaux_series("Volleyball", "Zone Centre", 12, 3),
 ]
 

@@ -489,7 +489,6 @@ function renderMyReservations() {
       (item) =>
         isMine(item) &&
         item.statut === "CONFIRMED" &&
-        item.date_reservation === dateInputEl.value &&
         !seen.has(item.id) &&
         seen.add(item.id),
     )
@@ -514,7 +513,10 @@ function renderMyReservations() {
   }
 
   myReservationsListEl.innerHTML = "";
-  for (const [dateValue, items] of byDate.entries()) {
+  // Trie les dates dans l'ordre chronologique
+  const sortedDates = Array.from(byDate.keys()).sort((a, b) => a.localeCompare(b));
+  for (const dateValue of sortedDates) {
+    const items = byDate.get(dateValue);
     const dayBlock = document.createElement("article");
     dayBlock.className = "my-reservation-day";
 
