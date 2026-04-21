@@ -18,7 +18,7 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at 8% 0%, #fef7e7 0%, var(--bg) 40%);
+  background: radial-gradient(circle at 8% 0%, #352d1736 0%, var(--bg) 40%);
   color: var(--ink);
   font-family: "Barlow", sans-serif;
   min-width: 1280px;
