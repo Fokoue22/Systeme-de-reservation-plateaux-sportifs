@@ -107,6 +107,7 @@ class NotificationService:
             heure_debut=reservation.creneau.debut.isoformat(timespec="minutes"),
             heure_fin=reservation.creneau.fin.isoformat(timespec="minutes"),
             statut=reservation.statut.value,
+            nb_personnes=reservation.nb_personnes,
         )
         subject, body = build_message(event_type, context)
 

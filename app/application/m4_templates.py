@@ -15,6 +15,7 @@ class ReservationNotificationContext:
     heure_debut: str
     heure_fin: str
     statut: str
+    nb_personnes: int = 1
 
 
 def _human_slot(ctx: ReservationNotificationContext) -> str:
@@ -30,32 +31,32 @@ def build_message(event_type: NotificationEventType, ctx: ReservationNotificatio
     if event_type == NotificationEventType.RESERVATION_CONFIRMED:
         return (
             "Reservation confirmee",
-            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} est confirmee ({slot}).",
+            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} est confirmee ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
     if event_type == NotificationEventType.RESERVATION_WAITLISTED:
         return (
             "Reservation en attente",
-            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} est en liste d'attente ({slot}).",
+            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} est en liste d'attente ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
     if event_type == NotificationEventType.RESERVATION_CANCELLED:
         return (
             "Reservation annulee",
-            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete annulee ({slot}).",
+            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete annulee ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
     if event_type == NotificationEventType.RESERVATION_UPDATED:
         return (
             "Reservation modifiee",
-            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete mise a jour ({slot}).",
+            f"Bonjour {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete mise a jour ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
     if event_type == NotificationEventType.WAITLIST_PROMOTED:
         return (
             "Promotion depuis la liste d'attente",
-            f"Bonne nouvelle {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete promue en confirmee ({slot}).",
+            f"Bonne nouvelle {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete promue en confirmee ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
     if event_type == NotificationEventType.REMINDER_24H:
         return (
             "Rappel J-1",
-            f"Rappel: votre reservation #{ctx.reservation_id} aura lieu demain ({slot}).",
+            f"Rappel: votre reservation #{ctx.reservation_id} aura lieu demain ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
 
     return (
