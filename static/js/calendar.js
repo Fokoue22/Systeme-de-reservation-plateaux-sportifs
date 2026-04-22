@@ -426,13 +426,21 @@ function renderLanes() {
         }
 
         card.innerHTML = `
-          <div class="user">${booking.utilisateur}</div>
-          <div>${booking.creneau.debut.slice(0, 5)} - ${booking.creneau.fin.slice(0, 5)}</div>
-          <div>${mine ? "Ma reservation" : "Non disponible"}</div>
-          <div class="nb-personnes">${booking.nb_personnes ? booking.nb_personnes + ' pers.' : ''}</div>
+          <div class="booking-content">
+            <span class="user">${booking.utilisateur}</span>
+            <span>${booking.creneau.debut.slice(0, 5)} - ${booking.creneau.fin.slice(0, 5)}</span>
+            <span>${mine ? "Ma reservation" : "Non disponible"}</span>
+            <span class="nb-personnes">${booking.nb_personnes ? booking.nb_personnes + ' pers.' : ''}</span>
+          </div>
           ${actionsHtml}
         `;
-        // Forcer l'affichage des boutons même si la hauteur est petite
+        // Compact: horizontal, wrap si manque de place
+        const content = card.querySelector('.booking-content');
+        content.style.display = 'flex';
+        content.style.flexDirection = 'row';
+        content.style.flexWrap = 'wrap';
+        content.style.gap = '8px';
+        content.style.alignItems = 'center';
         if (mine) {
           card.style.minHeight = '40px';
           card.style.display = 'flex';
