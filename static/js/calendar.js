@@ -429,8 +429,16 @@ function renderLanes() {
           <div class="user">${booking.utilisateur}</div>
           <div>${booking.creneau.debut.slice(0, 5)} - ${booking.creneau.fin.slice(0, 5)}</div>
           <div>${mine ? "Ma reservation" : "Non disponible"}</div>
+          <div class="nb-personnes">${booking.nb_personnes ? booking.nb_personnes + ' pers.' : ''}</div>
           ${actionsHtml}
         `;
+        // Forcer l'affichage des boutons même si la hauteur est petite
+        if (mine) {
+          card.style.minHeight = '40px';
+          card.style.display = 'flex';
+          card.style.flexDirection = 'column';
+          card.style.justifyContent = 'space-between';
+        }
 
         if (mine) {
           const editBtn = card.querySelector(".booking-action.edit");
@@ -528,7 +536,7 @@ function renderMyReservations() {
       const line = document.createElement("p");
       line.className = "my-reservation-item";
       const label = labelsById.get(item.plateau_id) || `Plateau #${item.plateau_id}`;
-      line.textContent = `${item.creneau.debut.slice(0, 5)} a ${item.creneau.fin.slice(0, 5)} ${label}`;
+      line.textContent = `${item.creneau.debut.slice(0, 5)} a ${item.creneau.fin.slice(0, 5)} ${label} (${item.nb_personnes || 1} pers.)`;
       dayBlock.appendChild(line);
     }
 
