@@ -93,11 +93,21 @@ class NotificationService:
             raise NotFoundError("Reservation introuvable pour notification.")
 
         plateau = self.plateau_repo.get_by_id(reservation.plateau_id)
-        plateau_label = (
-            f"{plateau.type_sport} - {plateau.emplacement}"
-            if plateau is not None
-            else f"Plateau #{reservation.plateau_id}"
-        )
+        if plateau is not None:
+            # Générer le même label que dans l'UI (ex: Volleyball - Zone Centre - M1)
+            all_plateaux = self.plateau_repo.list_all()
+            # On regroupe par type_sport + emplacement
+            group_key = (plateau.type_sport.strip().lower(), plateau.emplacement.strip().lower())
+            group = [p for p in all_plateaux if (p.type_sport.strip().lower(), p.emplacement.strip().lower()) == group_key]
+            group = sorted(group, key=lambda p: p.id)
+            try:
+                idx = [p.id for p in group].index(plateau.id)
+                sequence = idx + 1
+                plateau_label = f"{plateau.type_sport} - {plateau.emplacement} - M{sequence}"
+            except Exception:
+                plateau_label = f"{plateau.type_sport} - {plateau.emplacement}"
+        else:
+            plateau_label = f"Plateau #{reservation.plateau_id}"
 
         context = ReservationNotificationContext(
             utilisateur=reservation.utilisateur,
