@@ -188,7 +188,8 @@ class NotificationService:
         return self.reminder_task_repo.upsert_task(task)
 
     def process_due_reminders(self, now_utc: datetime | None = None) -> list[NotificationMessage]:
-        now = now_utc or datetime.utcnow()
+        # Use local naive datetime consistently with scheduled reminders.
+        now = now_utc or datetime.now()
         due_tasks = self.reminder_task_repo.list_due_tasks(now.isoformat())
         sent_messages: list[NotificationMessage] = []
 
