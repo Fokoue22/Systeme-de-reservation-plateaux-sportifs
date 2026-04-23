@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendrier - Reservation Sportive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/calendar.css?v=20260419e" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">RS</span>
+        <span class="brand-text">Reservation Sportive</span>
+      </div>
+      <nav class="sport-tabs" id="sportTabs"></nav>
+      <div class="quick-icons" aria-label="Actions rapides">
+        <button class="icon-btn" type="button" title="Accueil" aria-label="Accueil">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 10.5L12 4l8 6.5" />
+            <path d="M7.5 9.5V20h9V9.5" />
+          </svg>
+        </button>
+        <button class="icon-btn active" type="button" title="Calendrier" aria-label="Calendrier">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="6" width="16" height="14" rx="2" />
+            <path d="M8 4v4M16 4v4M4 10h16" />
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" title="Messages" aria-label="Messages">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 7.5h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z" />
+          </svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn settings-btn" type="button" title="Parametres" aria-label="Parametres" aria-expanded="false">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6.2 6.2l1.6 1.6M16.2 16.2l1.6 1.6M17.8 6.2l-1.6 1.6M7.8 16.2l-1.6 1.6" />
+          </svg>
+        </button>
+      </div>
+      <div class="top-actions">
+        <button id="todayBtn" class="btn ghost">Aujourd'hui</button>
+        <input id="dateInput" type="date" />
+        <button id="profileChip" class="profile-chip" type="button" aria-label="Profil utilisateur">
+          <span class="avatar" id="profileAvatar">{{ (current_user[:2] if current_user else '--')|upper }}</span>
+          <span id="profileName">{{ current_user or 'Invite' }}</span>
+        </button>
+        <button id="logoutBtn" class="btn ghost" type="button">Deconnexion</button>
+      </div>
+    </header>
+
+    <div id="settingsModal" class="settings-modal hidden" aria-hidden="true">
+      <div class="settings-backdrop" data-close-settings></div>
+      <section class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="settings-header">
+          <div>
+            <p class="eyebrow">Espace compte</p>
+            <h2 id="settingsTitle">Parametres du compte</h2>
+          </div>
+          <button class="icon-btn settings-close" type="button" data-close-settings aria-label="Fermer les parametres">×</button>
+        </div>
+
+        <div class="settings-grid">
+          <section class="settings-section">
+            <h3>Profil utilisateur</h3>
+            <form id="profileForm" class="settings-form">
+              <label>Nom complet
+                <input type="text" name="full_name" id="profileFullName" required />
+              </label>
+              <label>Email
+                <input type="email" name="email" id="profileEmail" />
+              </label>
+              <label>Numéro de téléphone
+                <input type="text" name="telephone" id="profileTelephone" placeholder="+1 514 000 0000" />
+              </label>
+              <button type="submit" class="btn primary">Enregistrer le profil</button>
+            </form>
+          </section>
+
+          <section class="settings-section">
+            <h3>Sécurité</h3>
+            <form id="passwordForm" class="settings-form">
+              <label>Mot de passe actuel
+                <input type="password" name="current_password" required />
+              </label>
+              <label>Nouveau mot de passe
+                <input type="password" name="new_password" minlength="6" required />
+              </label>
+              <label>Confirmer le nouveau mot de passe
+                <input type="password" name="confirm_new_password" minlength="6" required />
+              </label>
+              <button type="submit" class="btn primary">Changer le mot de passe</button>
+            </form>
+          </section>
+
+          <section class="settings-section">
+            <h3>Support & aide</h3>
+            <p class="settings-text">Accedez a l'aide ou contactez le support si besoin.</p>
+            <button id="supportBtn" class="btn secondary" type="button">FAQ / Contacter le support</button>
+          </section>
+
+          <section class="settings-section danger-zone">
+            <h3>Suppression du compte</h3>
+            <p class="settings-text danger">Cette action supprime definitivement votre compte et vos sessions actives.</p>
+            <form id="deleteForm" class="settings-form">
+              <label>Mot de passe actuel
+                <input type="password" name="current_password" required />
+              </label>
+              <button type="submit" class="btn danger">Supprimer mon compte</button>
+            </form>
+          </section>
+
+          <section class="settings-section compact-section">
+            <h3>Affichage</h3>
+            <label class="toggle-line">
+              <input id="compactModeToggle" type="checkbox" />
+              <span>Mode compact pour le calendrier</span>
+            </label>
+            <p class="settings-text">Ajuste l'espacement des cartes pour afficher plus de reservations a l'ecran.</p>
+          </section>
+        </div>
+        <p id="settingsFlash" class="flash settings-flash" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <main class="layout">
+      <section class="calendar-panel">
+        <div class="calendar-header">
+          <h1>Planning des plateaux</h1>
+          <p id="subtitle">Chargement...</p>
+        </div>
+        <div class="calendar-wrap" id="calendarWrap">
+          <div class="time-column" id="timeColumn"></div>
+          <div class="lanes" id="lanes"></div>
+        </div>
+      </section>
+
+      <aside class="booking-panel">
+        <h2>Nouvelle reservation</h2>
+        <form id="bookingForm">
+          <label>Utilisateur
+            <input type="text" name="utilisateur" placeholder="Nom utilisateur" required />
+          </label>
+          <label>Plateau
+            <select name="plateau_id" id="plateauSelect" required></select>
+          </label>
+          <label>Date
+            <input type="date" name="date_reservation" id="formDate" required />
+          </label>
+          <div class="grid2">
+            <label>Arrivee
+              <select name="debut" id="arrivalSelect" required></select>
+            </label>
+            <label>Depart
+              <select name="fin" id="departureSelect" required></select>
+            </label>
+          </div>
+          <label>Nombre de personnes
+            <input type="number" name="nb_personnes" id="peopleCount" min="1" step="1" required />
+          </label>
+          <div class="capacity-box" id="capacityInfo">
+            Capacite minimale: <strong id="capacityMin">1</strong> | Capacite maximale: <strong id="capacityMax">-</strong>
+          </div>
+          <button class="btn primary" type="submit">Creer la reservation</button>
+        </form>
+
+        <div class="legend">
+          <h3>Legende</h3>
+          <p><span class="dot unavailable"></span> Non disponible</p>
+          <p><span class="dot mine"></span> Mes reservations</p>
+        </div>
+
+        <section class="my-reservations" id="myReservationsPanel">
+          <h3>Mes reservations</h3>
+          <div id="myReservationsList" class="my-reservations-list">
+            <p class="empty-state">Aucune reservation pour le moment.</p>
+          </div>
+        </section>
+
+        <div id="flash" class="flash" role="status" aria-live="polite"></div>
+      </aside>
+    </main>
+
+    <script src="/static/js/calendar.js?v=20260419d" defer></script>
+  </body>
+</html>
