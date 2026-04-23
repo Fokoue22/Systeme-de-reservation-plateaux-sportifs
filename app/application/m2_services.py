@@ -64,6 +64,11 @@ class ReservationService:
         slot: Creneau,
         nb_personnes: int = 1,
     ) -> Reservation:
+        # Empêcher la réservation pour une heure déjà passée aujourd'hui
+        from datetime import datetime, date as dt_date
+        now = datetime.now()
+        if reservation_date == dt_date.today() and slot.debut <= now.time():
+            raise ConflictError("Impossible de réserver pour une heure déjà passée aujourd'hui.")
         plateau = self.plateau_repo.get_by_id(plateau_id)
         if plateau is None:
             raise NotFoundError("Le plateau cible n'existe pas.")
