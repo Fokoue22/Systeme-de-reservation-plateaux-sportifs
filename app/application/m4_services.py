@@ -176,7 +176,15 @@ class NotificationService:
         if reservation is None:
             raise NotFoundError("Reservation introuvable pour planifier un rappel.")
 
-        scheduled_for = datetime.combine(reservation.date_reservation, reservation.creneau.debut) - timedelta(hours=24)
+        now = datetime.now()
+        reservation_datetime = datetime.combine(reservation.date_reservation, reservation.creneau.debut)
+        if reservation.date_reservation == now.date():
+            # Pour aujourd'hui, envoyer le rappel immédiatement
+            scheduled_for = now
+        else:
+            # Pour demain ou plus tard, 24h avant
+            scheduled_for = reservation_datetime - timedelta(hours=24)
+
         task = ReminderTask(
             id=None,
             reservation_id=reservation_id,

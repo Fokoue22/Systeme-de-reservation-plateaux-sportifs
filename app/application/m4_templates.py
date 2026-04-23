@@ -54,9 +54,11 @@ def build_message(event_type: NotificationEventType, ctx: ReservationNotificatio
             f"Bonne nouvelle {ctx.utilisateur}, votre reservation #{ctx.reservation_id} a ete promue en confirmee ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
     if event_type == NotificationEventType.REMINDER_24H:
+        from datetime import date
+        when = "aujourd'hui" if ctx.reservation_date == date.today() else "demain"
         return (
             "Rappel J-1",
-            f"Rappel: votre reservation #{ctx.reservation_id} aura lieu demain ({slot}, pour {ctx.nb_personnes} personne(s)).",
+            f"Rappel: votre reservation #{ctx.reservation_id} aura lieu {when} ({slot}, pour {ctx.nb_personnes} personne(s)).",
         )
 
     return (
