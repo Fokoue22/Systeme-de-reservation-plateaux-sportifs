@@ -500,14 +500,23 @@ function renderMyReservations() {
   const displayData = buildPlateauDisplayData(plateaux);
   const labelsById = displayData.labelsById;
   const seen = new Set();
+  const now = new Date();
+  const todayStr = isoDateToday();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const mine = allReservations
-    .filter(
-      (item) =>
-        isMine(item) &&
-        item.statut === "CONFIRMED" &&
-        !seen.has(item.id) &&
-        seen.add(item.id),
-    )
+    .filter((item) => {
+      if (!isMine(item) || item.statut !== "CONFIRMED" || seen.has(item.id)) return false;
+      seen.add(item.id);
+      // Réservations futures
+      if (item.date_reservation > todayStr) return true;
+      // Réservations aujourd'hui dont l'heure de fin n'est pas passée
+      if (item.date_reservation === todayStr) {
+        const finMinutes = toMinutes(item.creneau.fin.slice(0, 5));
+        return finMinutes > nowMinutes;
+      }
+      // Sinon, déjà passé
+      return false;
+    })
     .sort((a, b) => {
       if (a.date_reservation !== b.date_reservation) {
         return a.date_reservation.localeCompare(b.date_reservation);
