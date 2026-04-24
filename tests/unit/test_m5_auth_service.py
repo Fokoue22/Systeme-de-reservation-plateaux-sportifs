@@ -1,21 +1,28 @@
-import pytest
+﻿from __future__ import annotations
+
 from datetime import datetime, timedelta
-from app.application.m5_auth_services import AuthService
+
+import pytest
+
+from app.application.m5_auth_services import AuthService, AuthConflictError, AuthNotFoundError, AuthUnauthorizedError
 from app.domain.models import UserAccount, UserSession
 from app.domain.repositories import UserAccountRepository, UserSessionRepository
 
 
 class InMemoryUserAccountRepository(UserAccountRepository):
     def __init__(self):
-        self.accounts = {}
+        self.accounts: dict[int, UserAccount] = {}
         self._next_id = 1
 
     def create(self, account: UserAccount) -> UserAccount:
         created = UserAccount(
             id=self._next_id,
+            full_name=account.full_name,
             username=account.username,
             password_hash=account.password_hash,
             email=account.email,
+            telephone=account.telephone,
+            is_admin=account.is_admin,
             created_at=account.created_at,
             updated_at=account.updated_at,
         )
@@ -33,10 +40,10 @@ class InMemoryUserAccountRepository(UserAccountRepository):
         return self.accounts.get(user_id)
 
     def update(self, account: UserAccount) -> UserAccount:
-        if account.id and account.id in self.accounts:
-            self.accounts[account.id] = account
-            return account
-        raise ValueError("Account not found")
+        if account.id is None or account.id not in self.accounts:
+            raise ValueError("Account not found")
+        self.accounts[account.id] = account
+        return account
 
     def delete(self, user_id: int) -> bool:
         return self.accounts.pop(user_id, None) is not None
@@ -44,7 +51,7 @@ class InMemoryUserAccountRepository(UserAccountRepository):
 
 class InMemorySessionRepository(UserSessionRepository):
     def __init__(self):
-        self.sessions = {}
+        self.sessions: dict[str, UserSession] = {}
 
     def create(self, session: UserSession) -> UserSession:
         self.sessions[session.token] = session
@@ -57,261 +64,163 @@ class InMemorySessionRepository(UserSessionRepository):
         return self.sessions.pop(token, None) is not None
 
     def delete_by_user(self, user_id: int) -> int:
-        tokens_to_delete = [token for token, session in self.sessions.items() if session.user_id == user_id]
-        for token in tokens_to_delete:
+        tokens = [token for token, session in self.sessions.items() if session.user_id == user_id]
+        for token in tokens:
             del self.sessions[token]
-        return len(tokens_to_delete)
-
-    def update(self, session: UserSession) -> UserSession:
-        if session.token in self.sessions:
-            self.sessions[session.token] = session
-            return session
-        raise ValueError("Session not found")
-
-
-class DummyPasswordHasher:
-    def hash_password(self, password: str) -> str:
-        return f"hashed_{password}"
-
-    def verify_password(self, password: str, hashed: str) -> bool:
-        return hashed == f"hashed_{password}"
+        return len(tokens)
 
 
 class TestAuthService:
     def setup_method(self):
-        self.user_repo = InMemoryUserAccountRepository()
+        self.account_repo = InMemoryUserAccountRepository()
         self.session_repo = InMemorySessionRepository()
-        self.password_hasher = DummyPasswordHasher()
         self.service = AuthService(
-            user_repo=self.user_repo,
+            account_repo=self.account_repo,
             session_repo=self.session_repo,
-            password_hasher=self.password_hasher
         )
 
-    def test_register_creates_user_with_hashed_password(self):
-        # Given
-        username = "newuser"
-        password = "password123"
-        email = "newuser@example.com"
+    def test_register_creates_account_and_session(self):
+        account, session = self.service.register(
+            full_name="Test User",
+            username="TestUser",
+            password="password123",
+            email="USER@example.com",
+            telephone="0123456789",
+        )
 
-        # When
-        user = self.service.register(username=username, password=password, email=email)
+        assert account.username == "testuser"
+        assert account.email == "user@example.com"
+        assert account.full_name == "Test User"
+        assert account.id is not None
+        assert account.password_hash != "password123"
+        assert session.user_id == account.id
+        assert session.token
+        assert session.expires_at > datetime.utcnow()
 
-        # Then
-        assert user.username == username
-        assert user.email == email
-        assert user.id is not None
-        # Password should be hashed
-        assert user.password_hash != password
-        assert user.password_hash == f"hashed_{password}"
+    def test_register_rejects_duplicate_username(self):
+        self.service.register(full_name="First", username="duplicate", password="password123", email="first@example.com")
 
-    def test_register_rejects_short_username(self):
-        # Given
-        username = "ab"  # Too short
-        password = "password123"
-        email = "user@example.com"
+        with pytest.raises(AuthConflictError, match="Ce nom d'utilisateur est deja utilise"):
+            self.service.register(full_name="Second", username="duplicate", password="password123", email="second@example.com")
 
-        # When/Then
-        with pytest.raises(ValueError, match="Username must be at least 3 characters"):
-            self.service.register(username=username, password=password, email=email)
+    def test_register_rejects_duplicate_email(self):
+        self.service.register(full_name="First", username="user1", password="password123", email="same@example.com")
 
-    def test_register_rejects_existing_username(self):
-        # Given
-        username = "existinguser"
-        password = "password123"
-        email = "user@example.com"
+        with pytest.raises(AuthConflictError, match="Cette adresse e-mail est deja utilisee"):
+            self.service.register(full_name="Second", username="user2", password="password123", email="same@example.com")
 
-        # Create existing user
-        self.service.register(username=username, password="oldpass", email="old@example.com")
+    def test_login_with_correct_credentials(self):
+        self.service.register(full_name="Test User", username="loginuser", password="password123", email="login@example.com")
+        account, session = self.service.login(username="loginuser", password="password123")
 
-        # When/Then
-        with pytest.raises(ValueError, match="Username already exists"):
-            self.service.register(username=username, password=password, email=email)
+        assert account.username == "loginuser"
+        assert session.user_id == account.id
+        assert session.token
 
-    def test_login_with_correct_credentials_returns_session(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
+    def test_login_with_wrong_password_raises_unauthorized(self):
+        self.service.register(full_name="Test User", username="loginuser", password="password123", email="login@example.com")
 
-        # Register user
-        self.service.register(username=username, password=password, email=email)
+        with pytest.raises(AuthUnauthorizedError):
+            self.service.login(username="loginuser", password="wrongpass")
 
-        # When
-        session = self.service.login(username=username, password=password)
+    def test_login_with_nonexistent_user_raises_unauthorized(self):
+        with pytest.raises(AuthUnauthorizedError):
+            self.service.login(username="nouser", password="password123")
 
-        # Then
-        assert session is not None
-        assert session.user_id is not None
-        assert session.token is not None
-        assert session.expires_at > datetime.now()
+    def test_update_profile_changes_information(self):
+        account, _ = self.service.register(full_name="Test User", username="profileuser", password="password123", email="profile@example.com")
 
-    def test_login_with_wrong_password_fails(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
+        updated = self.service.update_profile(
+            user_id=account.id or 0,
+            full_name="Updated Name",
+            email="updated@example.com",
+            telephone="0987654321",
+        )
 
-        # Register user
-        self.service.register(username=username, password=password, email=email)
+        assert updated.full_name == "Updated Name"
+        assert updated.email == "updated@example.com"
+        assert updated.telephone == "0987654321"
 
-        # When/Then
-        with pytest.raises(ValueError, match="Invalid username or password"):
-            self.service.login(username=username, password="wrongpassword")
+    def test_update_profile_rejects_duplicate_email(self):
+        self.service.register(full_name="First", username="user1", password="password123", email="first@example.com")
+        account, _ = self.service.register(full_name="Second", username="user2", password="password123", email="second@example.com")
 
-    def test_login_with_nonexistent_user_fails(self):
-        # Given
-        username = "nonexistent"
-        password = "password123"
-
-        # When/Then
-        with pytest.raises(ValueError, match="Invalid username or password"):
-            self.service.login(username=username, password=password)
-
-    def test_change_password_updates_password(self):
-        # Given
-        username = "testuser"
-        old_password = "password123"
-        new_password = "newpassword456"
-        email = "test@example.com"
-
-        # Register and login
-        self.service.register(username=username, password=old_password, email=email)
-        session = self.service.login(username=username, password=old_password)
-
-        # When
-        self.service.change_password(user_id=session.user_id, old_password=old_password, new_password=new_password)
-
-        # Then
-        # Old password should no longer work
-        with pytest.raises(ValueError, match="Invalid username or password"):
-            self.service.login(username=username, password=old_password)
-
-        # New password should work
-        new_session = self.service.login(username=username, password=new_password)
-        assert new_session is not None
-
-    def test_change_password_with_wrong_old_password_fails(self):
-        # Given
-        username = "testuser"
-        old_password = "password123"
-        wrong_old_password = "wrongpassword"
-        new_password = "newpassword456"
-        email = "test@example.com"
-
-        # Register and login
-        self.service.register(username=username, password=old_password, email=email)
-        session = self.service.login(username=username, password=old_password)
-
-        # When/Then
-        with pytest.raises(ValueError, match="Invalid old password"):
-            self.service.change_password(
-                user_id=session.user_id,
-                old_password=wrong_old_password,
-                new_password=new_password
+        with pytest.raises(AuthConflictError):
+            self.service.update_profile(
+                user_id=account.id or 0,
+                full_name="Second",
+                email="first@example.com",
+                telephone=None,
             )
 
-    def test_update_account_updates_user_info(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
-        new_email = "newemail@example.com"
+    def test_change_password_allows_login_with_new_password(self):
+        account, _ = self.service.register(full_name="Test User", username="changepw", password="password123", email="pw@example.com")
 
-        # Register and login
-        self.service.register(username=username, password=password, email=email)
-        session = self.service.login(username=username, password=password)
-
-        # When
-        updated_user = self.service.update_account(
-            user_id=session.user_id,
-            email=new_email
+        updated = self.service.change_password(
+            user_id=account.id or 0,
+            current_password="password123",
+            new_password="newpassword456",
         )
 
-        # Then
-        assert updated_user.email == new_email
-        assert updated_user.username == username
+        assert updated.password_hash != account.password_hash
 
-    def test_delete_account_removes_user_and_sessions(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
+        with pytest.raises(AuthUnauthorizedError):
+            self.service.login(username="changepw", password="password123")
 
-        # Register and login
-        self.service.register(username=username, password=password, email=email)
-        session = self.service.login(username=username, password=password)
+        _, new_session = self.service.login(username="changepw", password="newpassword456")
+        assert new_session.token
 
-        # When
-        self.service.delete_account(user_id=session.user_id)
+    def test_change_password_with_wrong_current_password_raises(self):
+        account, _ = self.service.register(full_name="Test User", username="changepw", password="password123", email="pw@example.com")
 
-        # Then
-        # User should be gone
-        with pytest.raises(ValueError, match="Invalid username or password"):
-            self.service.login(username=username, password=password)
+        with pytest.raises(AuthUnauthorizedError):
+            self.service.change_password(
+                user_id=account.id or 0,
+                current_password="wrongpassword",
+                new_password="newpassword456",
+            )
 
-        # Session should be invalid
-        with pytest.raises(ValueError, match="Invalid session"):
-            self.service.validate_session(session.token)
+    def test_change_password_with_short_new_password_raises(self):
+        account, _ = self.service.register(full_name="Test User", username="changepw", password="password123", email="pw@example.com")
 
-    def test_validate_session_with_valid_token_returns_user(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
+        with pytest.raises(AuthConflictError):
+            self.service.change_password(
+                user_id=account.id or 0,
+                current_password="password123",
+                new_password="123",
+            )
 
-        # Register and login
-        self.service.register(username=username, password=password, email=email)
-        session = self.service.login(username=username, password=password)
+    def test_delete_account_removes_account_and_sessions(self):
+        account, session = self.service.register(full_name="Test User", username="deleteuser", password="password123", email="delete@example.com")
 
-        # When
-        user = self.service.validate_session(session.token)
+        self.service.delete_account(user_id=account.id or 0, current_password="password123")
 
-        # Then
-        assert user.username == username
-        assert user.email == email
+        assert self.account_repo.get_by_id(account.id or 0) is None
+        assert self.session_repo.get_by_token(session.token) is None
 
-    def test_validate_session_with_invalid_token_fails(self):
-        # Given
-        invalid_token = "invalid_token_123"
+    def test_get_user_from_session_returns_none_for_expired_token(self):
+        account, session = self.service.register(full_name="Test User", username="sessionuser", password="password123", email="session@example.com")
+        expired = UserSession(
+            token=session.token,
+            user_id=account.id or 0,
+            created_at=datetime.utcnow() - timedelta(days=30),
+            expires_at=datetime.utcnow() - timedelta(days=1),
+        )
+        self.session_repo.create(expired)
 
-        # When/Then
-        with pytest.raises(ValueError, match="Invalid session"):
-            self.service.validate_session(invalid_token)
+        assert self.service.get_user_from_session(session.token) is None
+        assert self.session_repo.get_by_token(session.token) is None
 
-    def test_validate_session_with_expired_token_fails(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
+    def test_require_user_from_session_raises_for_invalid_token(self):
+        with pytest.raises(AuthUnauthorizedError):
+            self.service.require_user_from_session("invalidtoken")
 
-        # Register and login
-        self.service.register(username=username, password=password, email=email)
-        session = self.service.login(username=username, password=password)
+    def test_logout_deletes_token(self):
+        _, session = self.service.register(full_name="Test User", username="logoutuser", password="password123", email="logout@example.com")
 
-        # Manually expire the session
-        expired_session = self.session_repo.get_by_token(session.token)
-        if expired_session:
-            expired_session.expires_at = datetime.now() - timedelta(hours=1)
-            self.session_repo.update(expired_session)
-
-        # When/Then
-        with pytest.raises(ValueError, match="Session expired"):
-            self.service.validate_session(session.token)
-
-    def test_logout_invalidates_session(self):
-        # Given
-        username = "testuser"
-        password = "password123"
-        email = "test@example.com"
-
-        # Register and login
-        self.service.register(username=username, password=password, email=email)
-        session = self.service.login(username=username, password=password)
-
-        # When
         self.service.logout(session.token)
 
-        # Then
-        with pytest.raises(ValueError, match="Invalid session"):
-            self.service.validate_session(session.token)
+        assert self.session_repo.get_by_token(session.token) is None
+
+    def test_verify_password_rejects_invalid_hash(self):
+        assert self.service.verify_password("password123", "invalid-hash") is False
