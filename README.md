@@ -3,13 +3,74 @@ Un système permettant à des équipes et des individus de réserver des crénea
 
 ## Site Web Statique
 
-Le site est accessible sur S3 à l'adresse suivante:
-**http://systeme-de-reservation-plateaux-sportifs.s3-website-us-east-1.amazonaws.com**
+Le site est accessible **pour le moment sur S3** à l'adresse suivante:
+```
+http://systeme-de-reservation-plateaux-sportifs.s3-website-us-east-1.amazonaws.com
 
-Les fichiers HTML statiques sont:
-- `index.html` - Page d'accueil
-- `login.html` - Page de connexion
-- `register.html` - Page d'inscription
+```
+
+
+### Note Importante - Authentification
+
+Pour le moment, l'authentification fonctionne uniquement en **développement local**. Les pages S3 tentent de communiquer avec l'API Flask sur `http://localhost:8000`, ce qui n'est pas accessible depuis internet.
+
+## Structure initiale du projet
+
+```text
+Systeme-de-reservation-plateaux-sportifs/
+	app/
+		api/
+		application/
+		domain/
+		infrastructure/
+		main.py
+	tests/
+		unit/
+		integration/
+	docs/
+	scripts/
+	requirements.txt
+	.env.example
+	pytest.ini
+	.coveragerc
+	Makefile
+	PATTERNS.md
+```
+
+## Installation rapide en local
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Lancer l'application
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Endpoint de verification: `/health`
+
+## Déploiement avec Docker
+
+Pour déployer l'application avec Docker, consultez le fichier **[DEPLOIEMENT.md](DEPLOIEMENT.md)** qui contient:
+- Instructions de construction de l'image Docker
+- Configuration du `docker-compose.yml`
+- Déploiement en production
+- Variables d'environnement requises
+
+
+
+## Déploiement en production** (à venir):
+Dans les prochains jours, nous déploierons l'application complète avec:
+- **AWS Lambda** pour l'API backend
+- **DynamoDB** pour la base de données
+- **API Gateway** pour les routes HTTP
+- **Cognito** pour l'authentification (optionnel)
+
+**Une fois déployée, les pages S3 communiqueront avec l'API en production et fonctionneront complètement.**
 
 ## CI/CD Pipeline
 
@@ -59,12 +120,6 @@ Configure le pipeline avec les étapes Source et Deploy.
 - L'ARN du compte AWS
 - Le repository GitHub dans la condition `sub`
 
-### Déploiement Automatique
-
-1. **Commit et push vers `develop`**: Les changements sont versionnés
-2. **Merge vers `main`**: Déclenche automatiquement:
-   - GitHub Actions: Upload vers S3
-   - CodePipeline: Récupère le code et déploie vers S3
 
 ### Commandes Utiles
 
@@ -82,57 +137,5 @@ aws codepipeline get-pipeline-state --name reservation-app-pipeline --region us-
 aws s3 cp index.html s3://systeme-de-reservation-plateaux-sportifs/index.html --content-type "text/html"
 ```
 
-### Configuration Requise
 
-Pour mettre en place ce pipeline, vous devez avoir:
-- Un compte AWS avec les permissions IAM appropriées
-- Un repository GitHub
-- Un bucket S3 configuré pour le static website hosting
-- Un token GitHub (stocké dans AWS Parameter Store ou en secret GitHub)
 
-## Structure initiale du projet
-
-```text
-Systeme-de-reservation-plateaux-sportifs/
-	app/
-		api/
-		application/
-		domain/
-		infrastructure/
-		main.py
-	tests/
-		unit/
-		integration/
-	docs/
-	scripts/
-	requirements.txt
-	.env.example
-	pytest.ini
-	.coveragerc
-	Makefile
-	PATTERNS.md
-```
-
-## Installation rapide
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## Lancer l'application
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-Endpoint de verification: `/health`
-
-## Déploiement avec Docker
-
-Pour déployer l'application avec Docker, consultez le fichier **[DEPLOIEMENT.md](DEPLOIEMENT.md)** qui contient:
-- Instructions de construction de l'image Docker
-- Configuration du `docker-compose.yml`
-- Déploiement en production
-- Variables d'environnement requises
