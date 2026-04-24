@@ -79,7 +79,12 @@ Pour déployer l'application avec Docker, consultez le fichier **[DEPLOIEMENT.md
 
 ## Couverture de Code
 
-Le projet maintient une couverture de tests d'environ **61%** sur le code applicatif.
+Le projet maintient actuellement une couverture de tests de **83%** sur le code applicatif.
+
+- `M1` : `100%`
+- `M2` : `80%`
+- `M4` : `91%`
+- `M5` : `87%`
 
 **Commande pour générer le rapport de couverture :**
 ```bash
