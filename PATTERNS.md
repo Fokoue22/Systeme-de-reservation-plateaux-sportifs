@@ -1,203 +1,82 @@
 # PATTERNS
 
-Ce document decrit les patterns et principes SOLID appliques pendant le module M1.
+Ce document décrit les patterns et principes SOLID appliqués pendant les modules M1 à M5.
 
 ## M1 - Gestion des plateaux
 
-Portee M1 implementee:
+Portée M1 implémentée :
 - CRUD des plateaux sportifs
-- Definition des creneaux horaires
-- Gestion des disponibilites par jour et plage horaire
+- Définition des créneaux horaires
+- Gestion des disponibilités par jour et plage horaire
 
 ### Pattern 1 - Repository Pattern
 
-- Emplacement:
-	- app/domain/repositories.py
-	- app/infrastructure/repositories.py
-- Probleme resolu:
-	- Decoupler la logique metier de la persistence (SQLite aujourd'hui, autre source demain).
-- Pourquoi ce pattern:
-	- La couche application manipule des abstractions (interfaces) et non du SQL direct.
-	- Les tests unitaires peuvent utiliser des repositories en memoire sans base de donnees.
-- Alternatives considerees:
-
-## M5 - Authentification et comptes
-
-Portee M5 implementee:
-- Creation de compte (register)
-- Connexion/deconnexion avec session persistante via cookie HTTP-only
-- Resolution de l'utilisateur courant (`/auth/me`)
-- Liaison compte -> preferences M4 pour email/SMS
-
-### Pattern 11 - Session-based Authentication (State + Repository)
-
-- Emplacement:
-	- app/api/m5_auth_routes.py
-	- app/application/m5_auth_services.py
-	- app/domain/models.py
-	- app/domain/repositories.py
-	- app/infrastructure/repositories.py
-	- app/infrastructure/sqlite.py
-- Probleme resolu:
-	- Identifier un utilisateur authentifie sans transmettre manuellement son identite a chaque requete.
-- Pourquoi ce pattern:
-	- Le service auth encapsule hashage de mot de passe, verification, creation/invalidation de session.
-	- Les tables `user_accounts` et `user_sessions` permettent une persistence simple et testable.
-	- Les routes M2 peuvent reutiliser l'identite de session pour verrouiller la propriete des reservations.
-- Alternatives considerees:
-	- JWT stateless: plus flexible, mais plus de complexite (rotation/revocation) inutile a ce stade.
-	- Session memoire: simple, mais non persistante et moins robuste en redemarrage.
-
-### Pattern 12 - Uniqueness Constraint + Service Guard (email utilisateur)
-
-- Emplacement:
-	- app/infrastructure/sqlite.py
-	- app/infrastructure/repositories.py
-	- app/application/m5_auth_services.py
-	- app/api/m5_auth_routes.py
-- Probleme resolu:
-	- Empêcher qu'un second compte reutilise la meme adresse e-mail.
-- Pourquoi ce pattern:
-	- La contrainte SQL `uq_user_accounts_email_lower` protege la base meme en cas de concurrence.
-	- Le service applique aussi une verification explicite pour afficher un message metier clair avant l'erreur technique.
-- Alternatives considerees:
-	- Verifier uniquement dans l'API: insuffisant face aux acces concurrents ou aux autres points d'entree.
-	- Laisser la contrainte seule: robuste, mais l'erreur SQLite serait moins lisible pour l'utilisateur.
-
-### Pattern 13 - Account Settings Modal (UI composition)
-
-- Emplacement:
-	- templates/calendar.html
-	- static/js/calendar.js
-	- static/css/calendar.css
-- Probleme resolu:
-	- Offrir des actions compte dans l'application principale sans polluer la page de reservation.
-- Pourquoi ce pattern:
-	- Le bouton `Parametres pro` ouvre un panneau dédié avec sections distinctes (profil, securite, support, suppression, affichage).
-	- Le mode compact est une preference locale non intrusive qui améliore la lisibilite du planning.
-- Alternatives considerees:
-	- Plusieurs pages séparées pour chaque sous-action: plus lourd pour l'utilisateur et plus couteux a naviguer.
-	- Popups dispersées sur la page principale: moins coherentes et moins maintenables.
-
-### Pattern 14 - Branded Authentication Surface
-
-- Emplacement:
-	- templates/auth_login.html
-	- templates/auth_register.html
-	- static/css/auth.css
-	- app/main.py
-- Probleme resolu:
-	- Donner au service d'authentification une presentation distincte et plus immersive avant l'entree dans le calendrier.
-- Pourquoi ce pattern:
-	- Le fond visuel utilise une image du dossier `Images` avec superposition pour garder la lisibilite.
-	- L'acces a `calendar` reste protege par session; l'auth est la porte d'entree officielle.
-- Alternatives considerees:
-	- Reutiliser la page calendrier pour l'auth: plus simple, mais confond la connexion avec la reservation.
-	- Garder un fond uni: plus sobre, mais moins conforme a la demande visuelle et moins distinctif.
-
-### Fichiers modifies (traceabilite M5)
-
-- app/application/m5_auth_services.py
-	- Nouveau service auth (register/login/logout/session, hashage scrypt).
-- app/api/m5_auth_routes.py
-	- Endpoints `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/me/profile`, `/auth/me/password`, `/auth/me` (DELETE).
-	- Cookie de session HTTP-only `reservation_session`.
-- app/api/m2_routes.py
-	- Utilisation de l'utilisateur authentifie (si present) pour creation/mise a jour de reservation.
-- app/api/deps.py
-	- Wiring des repositories/service auth.
-- app/api/schemas.py
-	- Schemas auth (login/register/user/profile/password/delete).
-- app/domain/models.py
-	- Ajout des entites `UserAccount` et `UserSession` avec `full_name`.
-- app/domain/repositories.py
-	- Contrats `UserAccountRepository` et `UserSessionRepository` enrichis (email, update, delete, purge sessions).
-- app/domain/__init__.py
-	- Exports auth domaine.
-- app/infrastructure/sqlite.py
-	- Creation des tables/index `user_accounts` et `user_sessions`, migration de `full_name`, nettoyage des doublons d'e-mail avant la contrainte unique.
-- app/infrastructure/repositories.py
-	- Implementations SQLite des repositories auth avec recherche par e-mail, update profile et purge sessions.
-- app/infrastructure/__init__.py
-	- Exports des repositories auth.
-- app/main.py
-	- Enregistrement du router M5 et exposition du dossier `Images`.
-- templates/calendar.html
-	- Ajout du bouton `Parametres pro`, du modal de compte et du profil dynamique.
-- static/js/calendar.js
-	- Flow frontend auth + utilisateur courant branche sur les reservations, panneau Parametres et mode compact.
-- static/css/calendar.css
-	- Styles du panneau compte, bouton pro, modal de parametres et compact mode.
-- templates/auth_login.html
-	- Page d'accueil auth avec fond image.
-- templates/auth_register.html
-	- Formulaire d'inscription avec nom complet et boutons oeil.
-- static/css/auth.css
-	- Style auth avec fond image du dossier `Images`.
-- static/js/auth_register.js
-	- Validation inscription et toggles password visibility.
-- app/api/ui_routes.py
-	- Redirections auth/calendar selon la session.
-- tests/integration/test_ui_auth_pages.py
-	- Tests de navigation auth/calendrier protégé.
-- tests/integration/test_m5_auth_api.py
-	- Tests d'integration auth, email unique, profil, mot de passe et suppression de compte.
+- **Emplacement** :
+  - `app/domain/repositories.py`
+  - `app/infrastructure/repositories.py`
+- **Problème résolu** :
+  - Découpler la logique métier de la persistence (SQLite aujourd'hui, autre source demain).
+- **Pourquoi ce pattern** :
+  - La couche application manipule des abstractions (interfaces) et non du SQL direct.
+  - Les tests unitaires peuvent utiliser des repositories en mémoire sans base de données.
+- **Alternatives considérées** :
+  - Active Record : aurait mélangé logique métier et persistence.
 
 ### Pattern 2 - Service Layer (Application Service)
 
-- Emplacement:
-	- app/application/m1_services.py
-- Probleme resolu:
-	- Centraliser les regles metier du module M1 (validation existence, conflit de creneaux, orchestrations CRUD).
-- Pourquoi ce pattern:
-	- Evite de mettre la logique metier dans les endpoints API ou dans les repositories.
-	- Rend la logique facilement testable en isolation.
-- Alternatives considerees:
-	- Mettre la logique dans les routes FastAPI: simple initialement, mais devient vite difficile a maintenir.
-	- Mettre la logique dans la couche repository: melange metier + acces donnees.
+- **Emplacement** :
+  - `app/application/m1_services.py`
+- **Problème résolu** :
+  - Centraliser les règles métier du module M1 (validation existence, conflit de créneaux, orchestrations CRUD).
+- **Pourquoi ce pattern** :
+  - Évite de mettre la logique métier dans les endpoints API ou dans les repositories.
+  - Rend la logique facilement testable en isolation.
+- **Alternatives considérées** :
+  - Mettre la logique dans les routes FastAPI : simple initialement, mais devient vite difficile à maintenir.
+  - Mettre la logique dans la couche repository : mélange métier + accès données.
 
 ### Pattern 3 - Dependency Injection (composition manuelle)
 
-- Emplacement:
-	- app/main.py
-	- app/api/m1_routes.py
-- Probleme resolu:
-	- Fournir les dependances (services/repos) sans que les routes creent elles-memes les objets techniques.
-- Pourquoi ce pattern:
-	- Simplifie le remplacement d'implementations (ex: in-memory pour tests, SQLite en production).
-	- Facilite la lisibilite de l'architecture et la testabilite.
-- Alternatives considerees:
-	- Instancier partout dans les endpoints: plus de duplication, couplage fort.
-	- Conteneur DI externe: possible, mais surdimensionne pour la taille actuelle du module.
+- **Emplacement** :
+  - `app/main.py`
+  - `app/api/m1_routes.py`
+- **Problème résolu** :
+  - Fournir les dépendances (services/repos) sans que les routes créent elles-mêmes les objets techniques.
+- **Pourquoi ce pattern** :
+  - Simplifie le remplacement d'implémentations (ex: in-memory pour tests, SQLite en production).
+  - Facilite la lisibilité de l'architecture et la testabilité.
+- **Alternatives considérées** :
+  - Instancier partout dans les endpoints : plus de duplication, couplage fort.
+  - Conteneur DI externe : possible, mais surdimensionné pour la taille actuelle du module.
 
 ### Pattern 4 - Value Object
 
-- Emplacement:
-	- app/domain/models.py (Creneau)
-- Probleme resolu:
-	- Representer un intervalle horaire avec invariants metier (debut < fin) dans un objet immuable.
-- Pourquoi ce pattern:
-	- Validation metier faite a la creation, donc etat invalide impossible a propager.
-	- Reutilisable dans Disponibilite sans dupliquer les verifications.
-- Alternatives considerees:
-	- Utiliser deux champs primitifs partout (debut/fin): plus de risque d'incoherence et duplication des regles.
+- **Emplacement** :
+  - `app/domain/models.py` (Creneau)
+- **Problème résolu** :
+  - Représenter un intervalle horaire avec invariants métier (début < fin) dans un objet immuable.
+- **Pourquoi ce pattern** :
+  - Validation métier faite à la création, donc état invalide impossible à propager.
+  - Réutilisable dans Disponibilite sans dupliquer les vérifications.
+- **Alternatives considérées** :
+  - Utiliser deux champs primitifs partout (début/fin) : plus de risque d'incohérence et duplication des règles.
 
 ### Pattern 5 - Factory Pattern (Seed Data Initialization)
 
-- Emplacement:
-	- app/infrastructure/seeds.py (definition des donnees + factory method)
-	- app/infrastructure/sqlite.py (méthode seed_initial_data)
-	- app/api/deps.py (appel au startup)
-- Probleme resolu:
-	- Decoupler les donnees initiales de la logique de persistence.
-	- Rendre extensible l'ajout de nouveaux plateaux sans modifier le code application.
-	- Respecter l'OCP: ajouter de nouveaux sports (Gymnase, Tennis, Piscine, Soccer, Volleyball) sans toucher aux services ou routes.
-- Pourquoi ce pattern:
-	- Les donnees initiales sont maintenues separement dans PLATEAUX_DATA.
-	- La factory method `create_plateau_from_data()` transforme chaque entree en objet domaine.
-	- L'operation est idempotente: re-executer ne duplique pas les donnees.
-	- Prepares le code pour des variantes futures (seed par fichier YAML, import depuis une API externe, etc).
-- Alternatives considerees:
+- **Emplacement** :
+  - `app/infrastructure/seeds.py` (définition des données + factory method)
+  - `app/infrastructure/sqlite.py` (méthode seed_initial_data)
+  - `app/api/deps.py` (appel au startup)
+- **Problème résolu** :
+  - Découpler les données initiales de la logique de persistence.
+  - Rendre extensible l'ajout de nouveaux plateaux sans modifier le code application.
+  - Respecter l'OCP : ajouter de nouveaux sports (Gymnase, Tennis, Piscine, Soccer, Volleyball) sans toucher aux services ou routes.
+- **Pourquoi ce pattern** :
+  - Les données initiales sont maintenues séparément dans PLATEAUX_DATA.
+  - La factory method `create_plateau_from_data()` transforme chaque entrée en objet domaine.
+  - L'opération est idempotente : ré-exécuter ne duplique pas les données.
+  - Prépare le code pour des variantes futures (seed par fichier YAML, import depuis une API externe, etc).
+- **Alternatives considérées** :
 	- SQL INSERT direct dans initialize_schema: couple le schema et les donnees, difficile a maintenir.
 	- Seed lors d'un appel API manuel: oubli facile et data inconsistente entre environnements.
 
@@ -465,3 +344,149 @@ Portee M4 implementee:
 - Le module M4 introduit des integrations externes potentiellement instables (email/SMS).
 - La separation ports/adapters + templates + orchestration rend le module testable et evolutif.
 - L'integration M2 -> M4 preserve la logique metier existante tout en ajoutant des comportements transverses (notifications).
+
+## M5 - Authentification et comptes
+
+Portée M5 implémentée :
+- Création de compte (register)
+- Connexion/déconnexion avec session persistante via cookie HTTP-only
+- Résolution de l'utilisateur courant (`/auth/me`)
+- Liaison compte -> préférences M4 pour email/SMS
+
+### Pattern 12 - Session-based Authentication (State + Repository)
+
+- **Emplacement** :
+  - `app/api/m5_auth_routes.py`
+  - `app/application/m5_auth_services.py`
+  - `app/domain/models.py`
+  - `app/domain/repositories.py`
+  - `app/infrastructure/repositories.py`
+  - `app/infrastructure/sqlite.py`
+- **Problème résolu** :
+  - Identifier un utilisateur authentifié sans transmettre manuellement son identité à chaque requête.
+- **Pourquoi ce pattern** :
+  - Le service auth encapsule hashage de mot de passe, vérification, création/invalidation de session.
+  - Les tables `user_accounts` et `user_sessions` permettent une persistence simple et testable.
+  - Les routes M2 peuvent réutiliser l'identité de session pour verrouiller la propriété des réservations.
+- **Alternatives considérées** :
+  - JWT stateless : plus flexible, mais plus de complexité (rotation/revocation) inutile à ce stade.
+  - Session mémoire : simple, mais non persistante et moins robuste en redémarrage.
+
+### Pattern 13 - Uniqueness Constraint + Service Guard (email utilisateur)
+
+- **Emplacement** :
+  - `app/infrastructure/sqlite.py`
+  - `app/infrastructure/repositories.py`
+  - `app/application/m5_auth_services.py`
+  - `app/api/m5_auth_routes.py`
+- **Problème résolu** :
+  - Empêcher qu'un second compte réutilise la même adresse e-mail.
+- **Pourquoi ce pattern** :
+  - La contrainte SQL `uq_user_accounts_email_lower` protège la base même en cas de concurrence.
+  - Le service applique aussi une vérification explicite pour afficher un message métier clair avant l'erreur technique.
+- **Alternatives considérées** :
+  - Vérifier uniquement dans l'API : insuffisant face aux accès concurrents ou aux autres points d'entrée.
+  - Laisser la contrainte seule : robuste, mais l'erreur SQLite serait moins lisible pour l'utilisateur.
+
+### Pattern 14 - Account Settings Modal (UI composition)
+
+- **Emplacement** :
+  - `templates/calendar.html`
+  - `static/js/calendar.js`
+  - `static/css/calendar.css`
+- **Problème résolu** :
+  - Offrir des actions compte dans l'application principale sans polluer la page de réservation.
+- **Pourquoi ce pattern** :
+  - Le bouton `Paramètres pro` ouvre un panneau dédié avec sections distinctes (profil, sécurité, support, suppression, affichage).
+  - Le mode compact est une préférence locale non intrusive qui améliore la lisibilité du planning.
+- **Alternatives considérées** :
+  - Plusieurs pages séparées pour chaque sous-action : plus lourd pour l'utilisateur et plus coûteux à naviguer.
+  - Popups dispersées sur la page principale : moins cohérentes et moins maintenables.
+
+### Pattern 15 - Branded Authentication Surface
+
+- **Emplacement** :
+  - `templates/auth_login.html`
+  - `templates/auth_register.html`
+  - `static/css/auth.css`
+  - `app/main.py`
+- **Problème résolu** :
+  - Donner au service d'authentification une présentation distincte et plus immersive avant l'entrée dans le calendrier.
+- **Pourquoi ce pattern** :
+  - Le fond visuel utilise une image du dossier `Images` avec superposition pour garder la lisibilité.
+  - L'accès à `calendar` reste protégé par session ; l'auth est la porte d'entrée officielle.
+- **Alternatives considérées** :
+  - Réutiliser la page calendrier pour l'auth : plus simple, mais confond la connexion avec la réservation.
+  - Garder un fond uni : plus sobre, mais moins conforme à la demande visuelle et moins distinctif.
+
+## Intégration d'API Externe
+
+### Pattern 16 - External API Integration (Adaptateur)
+
+- **Emplacement** :
+  - `app/application/m4_delivery.py`
+  - `app/application/m4_services.py`
+- **Problème résolu** :
+  - Intégrer des services externes (email/SMS) sans coupler le code métier.
+- **Pourquoi ce pattern** :
+  - Interfaces `EmailSender` et `SmsSender` permettent de changer d'implémentation (SendGrid, Twilio, etc.).
+  - Implémentations console pour développement, vraies implémentations en production.
+- **Alternatives considérées** :
+  - Appels directs aux APIs externes : couplerait le métier aux détails d'intégration.
+
+## CI/CD et Déploiement
+
+## CI/CD et Déploiement
+
+### Pattern 17 - Infrastructure as Code (Docker + AWS)
+
+- **Emplacement** :
+  - `Dockerfile`
+  - `docker-compose.yml`
+  - `DEPLOIEMENT.md`
+  - `.github/workflows/deploy.yml`
+  - `aws/`
+- **Problème résolu** :
+  - Déployer l'application de façon reproductible et automatisée.
+- **Pourquoi ce pattern** :
+  - Docker containerise l'application pour la portabilité.
+  - AWS CodePipeline automatise le déploiement du frontend statique.
+  - GitHub Actions avec OIDC pour l'authentification sécurisée.
+  - Couverture de tests maintenue à environ **61%** sur le code applicatif.
+- **Alternatives considérées** :
+  - Déploiement manuel : sujet aux erreurs et non reproductible.
+
+### Pattern 18 - Configuration Environment (12-Factor App)
+
+- **Emplacement** :
+  - `.env.example`
+  - Variables d'environnement dans docker-compose.yml
+- **Problème résolu** :
+  - Gérer les configurations (DB, secrets) selon l'environnement.
+- **Pourquoi ce pattern** :
+  - Séparation configuration/code selon les 12 facteurs.
+  - Variables d'environnement injectées au runtime.
+- **Alternatives considérées** :
+  - Configuration hardcodée : non sécurisée et non flexible.
+
+## Patterns non utilisés et où ils auraient pu servir
+
+### Observer Pattern
+- **Où il aurait pu servir** : Dans M4 pour notifier plusieurs services (email, SMS, push) lors d'un événement de réservation.
+- **Pourquoi pas utilisé** : L'approche directe dans le service M4 était suffisante pour les besoins actuels.
+
+### Command Pattern
+- **Où il aurait pu servir** : Pour encapsuler les opérations de réservation/annulation dans M2 avec undo/redo.
+- **Pourquoi pas utilisé** : Complexité non nécessaire pour les opérations actuelles.
+
+### Decorator Pattern
+- **Où il aurait pu servir** : Pour ajouter des fonctionnalités transversales (logging, cache) aux services.
+- **Pourquoi pas utilisé** : AOP serait plus approprié pour les préoccupations transversales.
+
+### Singleton Pattern
+- **Où il aurait pu servir** : Pour les services partagés comme la connexion DB.
+- **Pourquoi pas utilisé** : Injection de dépendances plus testable et flexible.
+
+### Abstract Factory Pattern
+- **Où il aurait pu servir** : Pour créer des familles d'objets liées (repository + service).
+- **Pourquoi pas utilisé** : Factory simple suffisait pour les besoins actuels.
