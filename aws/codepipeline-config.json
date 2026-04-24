@@ -1,0 +1,60 @@
+{
+  "pipeline": {
+    "name": "reservation-app-pipeline",
+    "roleArn": "arn:aws:iam::671765845629:role/CodePipelineServiceRole",
+    "artifactStore": {
+      "type": "S3",
+      "location": "systeme-de-reservation-plateaux-sportifs"
+    },
+    "stages": [
+      {
+        "name": "Source",
+        "actions": [
+          {
+            "name": "SourceAction",
+            "actionTypeId": {
+              "category": "Source",
+              "owner": "ThirdParty",
+              "provider": "GitHub",
+              "version": "1"
+            },
+            "configuration": {
+              "Owner": "Fokoue22",
+              "Repo": "Systeme-de-reservation-plateaux-sportifs",
+              "Branch": "main",
+              "OAuthToken": "{{resolve:ssm-secure:/cicd/github-token}}"
+            },
+            "outputArtifacts": [
+              {
+                "name": "SourceOutput"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Deploy",
+        "actions": [
+          {
+            "name": "DeployToS3",
+            "actionTypeId": {
+              "category": "Deploy",
+              "owner": "AWS",
+              "provider": "S3",
+              "version": "1"
+            },
+            "configuration": {
+              "BucketName": "systeme-de-reservation-plateaux-sportifs",
+              "Extract": "true"
+            },
+            "inputArtifacts": [
+              {
+                "name": "SourceOutput"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
