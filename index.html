@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reservation Sportive - Accueil</title>
+    <title>Accueil - RS Reservation Sportive</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,247 +11,361 @@
       rel="stylesheet"
     />
     <style>
+      :root {
+        --bg: #075434;
+        --surface: rgba(255, 255, 255, 0.92);
+        --text: #111827;
+        --muted: #475569;
+        --border: rgba(148, 163, 184, 0.24);
+        --primary: #2f9e61;
+        --primary-dark: #1d6f45;
+        --accent: #d6a52f;
+      }
+
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
       }
 
       body {
-        font-family: 'Barlow', sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
         min-height: 100vh;
+        font-family: 'Barlow', sans-serif;
+        background: linear-gradient(135deg, #075434 0%, #764ba2 100%);
+        color: #f8fafc;
+      }
+
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .topbar {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        color: #333;
-      }
-
-      .container {
-        max-width: 1200px;
-        width: 90%;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
-      }
-
-      .hero {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 80px 40px;
-        text-align: center;
+        gap: 16px;
+        padding: 16px 0;
       }
 
       .brand {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 12px;
-        margin-bottom: 30px;
       }
 
       .brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #e0b64f, #b68018);
+        color: #111827;
+        display: grid;
+        place-items: center;
         font-family: 'Space Grotesk', sans-serif;
-        font-size: 32px;
         font-weight: 700;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 8px 16px;
-        border-radius: 8px;
       }
 
       .brand-text {
         font-family: 'Space Grotesk', sans-serif;
-        font-size: 28px;
+        font-size: 20px;
         font-weight: 700;
+        color: white;
       }
 
-      h1 {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 48px;
-        font-weight: 700;
-        margin-bottom: 16px;
-      }
-
-      .subtitle {
-        font-size: 18px;
-        opacity: 0.9;
-        margin-bottom: 40px;
-      }
-
-      .cta-buttons {
+      .nav {
         display: flex;
-        gap: 16px;
-        justify-content: center;
+        align-items: center;
+        gap: 18px;
         flex-wrap: wrap;
       }
 
-      .btn {
-        padding: 14px 32px;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
+      .nav a {
+        color: rgba(255, 255, 255, 0.85);
         text-decoration: none;
-        display: inline-block;
+        font-weight: 600;
+      }
+
+      .hero {
+        display: grid;
+        gap: 24px;
+        padding: 60px 0 40px;
+      }
+
+      .hero-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 40px 36px;
+        box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28);
+      }
+
+      .hero-top {
+        max-width: 780px;
+      }
+
+      .hero-top h1 {
+        margin: 0 0 20px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(3rem, 4vw, 4rem);
+        line-height: 1.05;
+        color: #111827;
+      }
+
+      .hero-top p {
+        margin: 0;
+        color: #475569;
+        font-size: 1.05rem;
+        line-height: 1.8;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 28px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 14px 28px;
+        border-radius: 999px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .btn-primary {
-        background: white;
-        color: #667eea;
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        box-shadow: 0 18px 40px rgba(47, 158, 97, 0.22);
       }
 
       .btn-secondary {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        border: 2px solid white;
+        background: rgba(255, 255, 255, 0.92);
+        color: #111827;
+        border: 1px solid rgba(17, 24, 39, 0.08);
       }
 
-      .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.3);
+      .btn:hover {
+        transform: translateY(-2px);
       }
 
-      .content {
-        padding: 60px 40px;
-      }
-
-      .features {
+      .cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 30px;
-        margin-bottom: 60px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
+        padding-top: 16px;
       }
 
-      .feature {
-        text-align: center;
+      .card {
+        background: white;
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(15, 23, 42, 0.08);
       }
 
-      .feature-icon {
-        font-size: 48px;
-        margin-bottom: 16px;
+      .icon {
+        display: grid;
+        place-items: center;
+        border-radius: 24px;
+        margin-bottom: 18px;
+        background: linear-gradient(135deg, #f7f7f9, #eef2ff);
+        padding: 12px;
       }
 
-      .feature h3 {
+      .icon img {
+        width: 96px;
+        height: 96px;
+        object-fit: contain;
+      }
+
+      .card h3 {
+        margin: 0 0 12px;
         font-family: 'Space Grotesk', sans-serif;
-        font-size: 20px;
-        margin-bottom: 12px;
-        color: #667eea;
+        font-size: 1.15rem;
+        color: #111827;
       }
 
-      .feature p {
-        color: #666;
-        line-height: 1.6;
+      .card p {
+        margin: 0;
+        color: #475569;
+        line-height: 1.75;
       }
 
-      .info-section {
-        background: #f8f9fa;
-        padding: 40px;
-        border-radius: 12px;
-        margin-bottom: 40px;
-      }
-
-      .info-section h2 {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 28px;
-        margin-bottom: 20px;
-        color: #333;
-      }
-
-      .info-section p {
-        color: #666;
-        line-height: 1.8;
-        margin-bottom: 12px;
+      .note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        color: #92400e;
+        font-weight: 700;
       }
 
       footer {
-        background: #f8f9fa;
-        padding: 30px 40px;
+        padding: 24px 0 14px;
         text-align: center;
-        color: #999;
-        border-top: 1px solid #eee;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 0.95rem;
       }
 
-      @media (max-width: 768px) {
-        .hero {
-          padding: 40px 20px;
-        }
-
-        h1 {
-          font-size: 32px;
-        }
-
-        .content {
-          padding: 30px 20px;
-        }
-
-        .cta-buttons {
+      @media (max-width: 860px) {
+        .topbar {
           flex-direction: column;
+          align-items: flex-start;
         }
 
-        .btn {
-          width: 100%;
+        .hero-card {
+          padding: 28px;
+        }
+
+        .hero-top h1 {
+          font-size: 2.5rem;
         }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <section class="hero">
+    <div class="page">
+      <header class="topbar">
         <div class="brand">
           <span class="brand-mark">RS</span>
           <span class="brand-text">Reservation Sportive</span>
         </div>
-        <h1>Reservez vos creneaux sportifs</h1>
-        <p class="subtitle">Plateforme de gestion des reservations de plateaux sportifs</p>
-        <div class="cta-buttons">
-          <a href="templates/auth_login.html" class="btn btn-primary">Se connecter</a>
-          <a href="templates/auth_register.html" class="btn btn-secondary">S'inscrire</a>
+        <nav class="nav">
+          <a href="/login">Se connecter</a>
+          <a href="/register">Inscription</a>
+          <a href="#features">Fonctionnalités</a>
+          <a href="#contact">Contact</a>
+          <a href="/login" class="btn btn-primary">Connexion</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div class="hero-card">
+          <div class="hero-top">
+            <h1>Réservez, gérez et sécurisez vos installations sportives</h1>
+            <p>Le service central d’authentification est déjà implémenté. Connectez-vous ou inscrivez-vous pour accéder à votre espace.</p>
+            <div class="hero-actions">
+              <a href="/login" class="btn btn-primary">Se connecter</a>
+              <a href="/register" class="btn btn-secondary">Inscription</a>
+            </div>
+          </div>
+
+          <div class="cards" id="features">
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/bookings.png" alt="Réservation simplifiée" />
+              </div>
+              <h3 class="discover-card-title">Réservation simplifiée</h3>
+              <p>Proposez la réservation en ligne en quelques minutes. Créneaux clairs, règles flexibles, annulation simple : vos utilisateurs réservent sans friction et vous gagnez du temps côté gestion.</p>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/multi-sports.png" alt="Adapté à toutes les activités" />
+              </div>
+              <h3 class="discover-card-title">Adapté à toutes les activités</h3>
+              <p>Tennis, Gymnase, Piscine, Soccer, Volleyball, Golf… mais aussi pour les collectivités, salles municipales, associations et équipements partagés. Une seule plateforme pour tout organiser, sans complexité.</p>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/payment.png" alt="Location & paiement en ligne" />
+              </div>
+              <h3 class="discover-card-title">Location & paiement en ligne</h3>
+              <p>Louez vos terrains de Tennis et de Soccer ou n'importe quel espace (salle de sport, gymnase scolaire, piscine, etc). Configurez finement les règles de réservation et vendez des crédits pour fidéliser les clients.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/access-control.png" alt="Contrôle d'accès & pilotage" />
+              </div>
+              <h3 class="discover-card-title">Contrôle d'accès & pilotage</h3>
+              <p>Codes d'accès générés automatiquement. Ouverture des portes et déclenchement de l'éclairage aux horaires réservés. Gardez la main à distance et offrez une expérience fluide aux utilisateurs.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/web-app.png" alt="Web-app personnalisée" />
+              </div>
+              <h3 class="discover-card-title">Web-app personnalisée</h3>
+              <p>Accès optimisé sur ordinateurs, mobiles et tablettes. Votre app aux couleurs de votre organisation. Offrez une expérience rapide, fiable et multiplateforme à vos utilisateurs.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/kiosk.png" alt="Borne publique & pointage" />
+              </div>
+              <h3 class="discover-card-title">Borne publique & pointage</h3>
+              <p>Affichez les calendriers en mode borne à l'accueil et demandez un pointage à l’arrivée. Moins de “no-show”, plus de fluidité sur site, compatible avec bornes tactiles dédiées.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/user-manager.png" alt="Gestion des utilisateurs" />
+              </div>
+              <h3 class="discover-card-title">Gestion des utilisateurs</h3>
+              <p>Importez vos utilisateurs en quelques clics depuis un fichier Excel/CSV. Utilisez les filtres pour affiner votre recherche et sélectionnez tout ou partie des utilisateurs pour effectuer des actions groupées.</p>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/accessrights.png" alt="Droits d'accès sur mesure" />
+              </div>
+              <h3 class="discover-card-title">Droits d'accès sur mesure</h3>
+              <p>Rôles, formules d'abonnement, quotas, réservations payantes ou libres… Ajustez précisément qui peut réserver quoi, quand et comment. Une gouvernance fine, sans casse-tête.</p>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/find-partner.png" alt="Recherche de partenaire" />
+              </div>
+              <h3 class="discover-card-title">Recherche de partenaire</h3>
+              <p>Aidez vos utilisateurs à trouver des partenaires de jeu selon leur niveau et leurs disponibilités. Annonces, annuaire, messages privés : créez plus de matchs, plus de plaisir, plus de fidélité.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/statistics.png" alt="Statistiques avancées" />
+              </div>
+              <h3 class="discover-card-title">Statistiques avancées</h3>
+              <p>Pilotez votre activité en un coup d’œil : fréquentation, taux d’occupation, historiques, exports Excel. Des chiffres pertinents pour planifier la saison et optimiser les recettes.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/messages.png" alt="Communication unifiée" />
+              </div>
+              <h3 class="discover-card-title">Communication unifiée</h3>
+              <p>Informez et engagez vos communautés : messagerie intégrée, campagnes par e-mail, contenus web. Actualités, rappels et informations au même endroit pour un impact immédiat.</p>
+              <span class="note">À venir</span>
+            </article>
+
+            <article class="card">
+              <div class="icon">
+                <img class="feature-icon" width="96" height="96" src="https://static.ballejaune.com/img/home/icons/website.png" alt="Site web personnalisé" />
+              </div>
+              <h3 class="discover-card-title">Site web personnalisé</h3>
+              <p>Un espace web personnalisable, sans publicité, avec un formulaire d’inscription et l'intégration à votre site web existant et aux réseaux sociaux. Gagnez en visibilité et de nouveaux clients.</p>
+              <span class="note">À venir</span>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section class="content">
-        <div class="features">
-          <div class="feature">
-            <div class="feature-icon">📅</div>
-            <h3>Calendrier intuitif</h3>
-            <p>Visualisez les disponibilites et reservez vos creneaux en quelques clics.</p>
-          </div>
-          <div class="feature">
-            <div class="feature-icon">🏟️</div>
-            <h3>Multiples plateaux</h3>
-            <p>Acces a plusieurs plateaux sportifs avec leurs caracteristiques specifiques.</p>
-          </div>
-          <div class="feature">
-            <div class="feature-icon">👥</div>
-            <h3>Gestion de groupe</h3>
-            <p>Reservez pour vous ou pour un groupe avec gestion des capacites.</p>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h2>Comment ca fonctionne?</h2>
-          <p><strong>1. Creez votre compte</strong> - Inscrivez-vous avec vos informations personnelles.</p>
-          <p><strong>2. Consultez le calendrier</strong> - Explorez les disponibilites des plateaux.</p>
-          <p><strong>3. Reservez votre creneau</strong> - Selectionnez la date, l'heure et le plateau.</p>
-          <p><strong>4. Confirmez votre reservation</strong> - Recevez une confirmation instantanee.</p>
-        </div>
-
-        <div class="info-section">
-          <h2>Besoin d'aide?</h2>
-          <p>Consultez notre FAQ ou contactez notre equipe de support pour toute question.</p>
-          <p>Email: support@reservation-sportive.com | Telephone: +1 (514) 000-0000</p>
-        </div>
-      </section>
-
-      <footer>
-        <p>&copy; 2026 Reservation Sportive. Tous droits reserves.</p>
+      <footer id="contact">
+        <p>© 2026 Reservation Sportive. Tous droits réservés.</p>
       </footer>
     </div>
   </body>
