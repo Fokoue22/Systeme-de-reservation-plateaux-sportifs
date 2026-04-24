@@ -44,6 +44,24 @@ def test_calendar_redirects_to_login_for_anonymous_user(tmp_path) -> None:
     app.dependency_overrides.clear()
 
 
+def test_login_page_returns_login_form_for_anonymous_user(tmp_path) -> None:
+    client, _ = _build_client(tmp_path)
+
+    response = client.get("/login")
+
+    assert response.status_code == 200
+    assert "Connexion" in response.text or "login" in response.text.lower()
+
+
+def test_register_page_returns_registration_form_for_anonymous_user(tmp_path) -> None:
+    client, _ = _build_client(tmp_path)
+
+    response = client.get("/register")
+
+    assert response.status_code == 200
+    assert "Inscription" in response.text or "register" in response.text.lower()
+
+
 def test_calendar_displays_username_when_authenticated(tmp_path) -> None:
     client, auth_service = _build_client(tmp_path)
 
