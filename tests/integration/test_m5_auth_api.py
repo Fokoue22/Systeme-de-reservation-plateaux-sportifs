@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -130,7 +130,7 @@ def test_m5_authenticated_user_overrides_reservation_payload_user(tmp_path) -> N
         json={
             "plateau_id": plateau_id,
             "utilisateur": "spoofed_user",
-            "date_reservation": date.today().isoformat(),
+            "date_reservation": (date.today() + timedelta(days=1)).isoformat(),
             "creneau": {"debut": "09:00:00", "fin": "09:30:00"},
             "nb_personnes": 1,
         },
