@@ -1,9 +1,80 @@
 import pytest
 from datetime import datetime, timedelta
 from app.application.m5_auth_services import AuthService
-from app.domain.models import UserAccount
-from app.infrastructure.repositories import InMemoryUserAccountRepository, InMemorySessionRepository
-from app.infrastructure.auth import DummyPasswordHasher
+from app.domain.models import UserAccount, UserSession
+from app.domain.repositories import UserAccountRepository, UserSessionRepository
+
+
+class InMemoryUserAccountRepository(UserAccountRepository):
+    def __init__(self):
+        self.accounts = {}
+        self._next_id = 1
+
+    def create(self, account: UserAccount) -> UserAccount:
+        created = UserAccount(
+            id=self._next_id,
+            username=account.username,
+            password_hash=account.password_hash,
+            email=account.email,
+            created_at=account.created_at,
+            updated_at=account.updated_at,
+        )
+        self.accounts[self._next_id] = created
+        self._next_id += 1
+        return created
+
+    def get_by_username(self, username: str) -> UserAccount | None:
+        return next((acc for acc in self.accounts.values() if acc.username == username), None)
+
+    def get_by_email(self, email: str) -> UserAccount | None:
+        return next((acc for acc in self.accounts.values() if acc.email == email), None)
+
+    def get_by_id(self, user_id: int) -> UserAccount | None:
+        return self.accounts.get(user_id)
+
+    def update(self, account: UserAccount) -> UserAccount:
+        if account.id and account.id in self.accounts:
+            self.accounts[account.id] = account
+            return account
+        raise ValueError("Account not found")
+
+    def delete(self, user_id: int) -> bool:
+        return self.accounts.pop(user_id, None) is not None
+
+
+class InMemorySessionRepository(UserSessionRepository):
+    def __init__(self):
+        self.sessions = {}
+
+    def create(self, session: UserSession) -> UserSession:
+        self.sessions[session.token] = session
+        return session
+
+    def get_by_token(self, token: str) -> UserSession | None:
+        return self.sessions.get(token)
+
+    def delete(self, token: str) -> bool:
+        return self.sessions.pop(token, None) is not None
+
+    def delete_by_user(self, user_id: int) -> int:
+        tokens_to_delete = [token for token, session in self.sessions.items() if session.user_id == user_id]
+        for token in tokens_to_delete:
+            del self.sessions[token]
+        return len(tokens_to_delete)
+
+    def update(self, session: UserSession) -> UserSession:
+        if session.token in self.sessions:
+            self.sessions[session.token] = session
+            return session
+        raise ValueError("Session not found")
+
+
+class DummyPasswordHasher:
+    def hash_password(self, password: str) -> str:
+        return f"hashed_{password}"
+
+    def verify_password(self, password: str, hashed: str) -> bool:
+        return hashed == f"hashed_{password}"
 
 
 class TestAuthService:

@@ -1,10 +1,54 @@
 import pytest
 from datetime import datetime, time, date
 from app.application.m4_services import NotificationService
-from app.domain.notifications import NotificationEvent, NotificationType, NotificationPreferences
+from app.domain.notifications import NotificationEventType, NotificationStatus, NotificationPreference, NotificationMessage
 from app.domain.models import Reservation, Plateau, Creneau, UserAccount
-from app.infrastructure.repositories import InMemoryNotificationRepository
-from app.infrastructure.notifications import DummyEmailSender, DummySmsSender
+from app.domain.repositories import NotificationRepository
+
+
+class DummyEmailSender:
+    def __init__(self):
+        self.sent_emails = []
+
+    def send_email(self, to: str, subject: str, body: str):
+        self.sent_emails.append({'to': to, 'subject': subject, 'body': body})
+
+
+class DummySmsSender:
+    def __init__(self):
+        self.sent_sms = []
+
+    def send_sms(self, to: str, message: str):
+        self.sent_sms.append({'to': to, 'message': message})
+
+
+class InMemoryNotificationRepository(NotificationRepository):
+    def __init__(self):
+        self.notifications = []
+        self._next_id = 1
+
+    def create(self, message: NotificationMessage) -> NotificationMessage:
+        created = NotificationMessage(
+            id=self._next_id,
+            utilisateur=message.utilisateur,
+            channel=message.channel,
+            event_type=message.event_type,
+            subject=message.subject,
+            body=message.body,
+            status=message.status,
+            error=message.error,
+            created_at=message.created_at,
+            sent_at=message.sent_at,
+        )
+        self.notifications.append(created)
+        self._next_id += 1
+        return created
+
+    def list_by_user(self, utilisateur: str, limit: int = 100) -> list[NotificationMessage]:
+        return [n for n in self.notifications if n.utilisateur == utilisateur][:limit]
+
+    def get_pending_notifications(self):
+        return [n for n in self.notifications if n.status == NotificationStatus.PENDING]
 
 
 class TestNotificationService:
@@ -30,11 +74,11 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When
         self.service.notify_reservation_event(
-            event=NotificationEvent.RESERVATION_CONFIRMED,
+            event=NotificationEventType.RESERVATION_CONFIRMED,
             user=user,
             reservation=reservation,
             preferences=preferences
@@ -59,11 +103,11 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=False, sms=True)
+        preferences = NotificationPreference(email=False, sms=True)
 
         # When
         self.service.notify_reservation_event(
-            event=NotificationEvent.RESERVATION_CONFIRMED,
+            event=NotificationEventType.RESERVATION_CONFIRMED,
             user=user,
             reservation=reservation,
             preferences=preferences
@@ -87,11 +131,11 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=False, sms=False)
+        preferences = NotificationPreference(email=False, sms=False)
 
         # When
         self.service.notify_reservation_event(
-            event=NotificationEvent.RESERVATION_CONFIRMED,
+            event=NotificationEventType.RESERVATION_CONFIRMED,
             user=user,
             reservation=reservation,
             preferences=preferences
@@ -113,7 +157,7 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When
         self.service.schedule_reminder(
@@ -128,7 +172,7 @@ class TestNotificationService:
         assert len(notifications) == 1
         notification = notifications[0]
         assert notification.user_id == 1
-        assert notification.type == NotificationType.REMINDER
+        assert notification.type == NotificationStatus.REMINDER
         assert notification.scheduled_for.date() == date(2024, 12, 24)  # 24h before
         assert notification.scheduled_for.time() == time(10, 0)
 
@@ -144,7 +188,7 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When/Then
         with pytest.raises(ValueError, match="Cannot schedule reminder for past date"):
@@ -158,7 +202,7 @@ class TestNotificationService:
     def test_send_daily_summary_no_reservations(self):
         # Given
         user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When
         self.service.send_daily_summary(user=user, preferences=preferences, reservations=[])
@@ -192,7 +236,7 @@ class TestNotificationService:
                 status="confirmed"
             )
         ]
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When
         self.service.send_daily_summary(
@@ -210,7 +254,7 @@ class TestNotificationService:
     def test_send_weekly_summary_no_reservations(self):
         # Given
         user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When
         self.service.send_weekly_summary(user=user, preferences=preferences, reservations=[])
@@ -244,7 +288,7 @@ class TestNotificationService:
                 status="confirmed"
             )
         ]
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # When
         self.service.send_weekly_summary(
@@ -271,7 +315,7 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # Schedule a reminder
         self.service.schedule_reminder(
@@ -305,7 +349,7 @@ class TestNotificationService:
             person_count=4,
             status="confirmed"
         )
-        preferences = NotificationPreferences(email=True, sms=False)
+        preferences = NotificationPreference(email=True, sms=False)
 
         # Schedule a future reminder
         self.service.schedule_reminder(
