@@ -1,30 +1,64 @@
+﻿from __future__ import annotations
+
 import pytest
-from datetime import datetime, time, date
+from datetime import datetime, date, time, timedelta
+
 from app.application.m4_services import NotificationService
-from app.domain.notifications import NotificationEventType, NotificationStatus, NotificationPreference, NotificationMessage
-from app.domain.models import Reservation, Plateau, Creneau, UserAccount
-from app.domain.repositories import NotificationRepository
+from app.application.m4_delivery import DeliveryPayload
+from app.application.m4_delivery import EmailSender, SmsSender
+from app.application.m1_services import NotFoundError
+from app.domain.models import Plateau, Reservation, Creneau, ReservationStatus
+from app.domain.notifications import (
+    NotificationChannel,
+    NotificationEventType,
+    NotificationMessage,
+    NotificationPreference,
+    NotificationStatus,
+    ReminderTask,
+)
+from app.domain.repositories import (
+    NotificationPreferenceRepository,
+    NotificationRepository,
+    ReminderTaskRepository,
+    ReservationRepository,
+    PlateauRepository,
+)
 
 
-class DummyEmailSender:
+class DummyEmailSender(EmailSender):
     def __init__(self):
-        self.sent_emails = []
+        self.sent = []
 
-    def send_email(self, to: str, subject: str, body: str):
-        self.sent_emails.append({'to': to, 'subject': subject, 'body': body})
+    def send(self, payload: DeliveryPayload) -> None:
+        self.sent.append(payload)
 
 
-class DummySmsSender:
+class DummySmsSender(SmsSender):
     def __init__(self):
-        self.sent_sms = []
+        self.sent = []
 
-    def send_sms(self, to: str, message: str):
-        self.sent_sms.append({'to': to, 'message': message})
+    def send(self, payload: DeliveryPayload) -> None:
+        self.sent.append(payload)
+
+
+class InMemoryNotificationPreferenceRepository(NotificationPreferenceRepository):
+    def __init__(self):
+        self.preferences: dict[str, NotificationPreference] = {}
+
+    def get_by_user(self, utilisateur: str) -> NotificationPreference | None:
+        return self.preferences.get(utilisateur)
+
+    def upsert(self, preference: NotificationPreference) -> NotificationPreference:
+        self.preferences[preference.utilisateur] = preference
+        return preference
+
+    def list_admins_with_weekly_summary_enabled(self) -> list[NotificationPreference]:
+        return [pref for pref in self.preferences.values() if pref.is_admin and pref.weekly_summary_enabled]
 
 
 class InMemoryNotificationRepository(NotificationRepository):
     def __init__(self):
-        self.notifications = []
+        self.notifications: list[NotificationMessage] = []
         self._next_id = 1
 
     def create(self, message: NotificationMessage) -> NotificationMessage:
@@ -47,324 +81,332 @@ class InMemoryNotificationRepository(NotificationRepository):
     def list_by_user(self, utilisateur: str, limit: int = 100) -> list[NotificationMessage]:
         return [n for n in self.notifications if n.utilisateur == utilisateur][:limit]
 
-    def get_pending_notifications(self):
-        return [n for n in self.notifications if n.status == NotificationStatus.PENDING]
+
+class InMemoryReminderTaskRepository(ReminderTaskRepository):
+    def __init__(self):
+        self.tasks: dict[int, ReminderTask] = {}
+        self._next_id = 1
+
+    def upsert_task(self, task: ReminderTask) -> ReminderTask:
+        if task.id is None:
+            task_id = self._next_id
+            self._next_id += 1
+        else:
+            task_id = task.id
+        created = ReminderTask(
+            id=task_id,
+            reservation_id=task.reservation_id,
+            utilisateur=task.utilisateur,
+            reminder_type=task.reminder_type,
+            scheduled_for=task.scheduled_for,
+            sent_at=task.sent_at,
+        )
+        self.tasks[task_id] = created
+        return created
+
+    def list_due_tasks(self, now_utc: str) -> list[ReminderTask]:
+        now = datetime.fromisoformat(now_utc)
+        return [task for task in self.tasks.values() if task.sent_at is None and task.scheduled_for <= now]
+
+    def mark_sent(self, task_id: int, sent_at_utc: str) -> ReminderTask | None:
+        task = self.tasks.get(task_id)
+        if task is None:
+            return None
+        updated = ReminderTask(
+            id=task.id,
+            reservation_id=task.reservation_id,
+            utilisateur=task.utilisateur,
+            reminder_type=task.reminder_type,
+            scheduled_for=task.scheduled_for,
+            sent_at=datetime.fromisoformat(sent_at_utc),
+        )
+        self.tasks[task_id] = updated
+        return updated
+
+
+class InMemoryReservationRepository(ReservationRepository):
+    def __init__(self):
+        self.reservations: dict[int, Reservation] = {}
+        self._next_id = 1
+
+    def create(self, reservation: Reservation) -> Reservation:
+        created = Reservation(
+            id=self._next_id,
+            plateau_id=reservation.plateau_id,
+            utilisateur=reservation.utilisateur,
+            date_reservation=reservation.date_reservation,
+            creneau=reservation.creneau,
+            statut=reservation.statut,
+            nb_personnes=reservation.nb_personnes,
+        )
+        self.reservations[self._next_id] = created
+        self._next_id += 1
+        return created
+
+    def get_by_id(self, reservation_id: int) -> Reservation | None:
+        return self.reservations.get(reservation_id)
+
+    def list_all(self) -> list[Reservation]:
+        return list(self.reservations.values())
+
+    def list_by_plateau_and_date(self, plateau_id: int, reservation_date: date) -> list[Reservation]:
+        return [res for res in self.reservations.values() if res.plateau_id == plateau_id and res.date_reservation == reservation_date]
+
+    def update_reservation(
+        self,
+        reservation_id: int,
+        plateau_id: int,
+        reservation_date: date,
+        creneau_debut: str,
+        creneau_fin: str,
+        statut: ReservationStatus,
+        nb_personnes: int,
+    ) -> Reservation | None:
+        existing = self.reservations.get(reservation_id)
+        if existing is None:
+            return None
+        updated = Reservation(
+            id=existing.id,
+            plateau_id=plateau_id,
+            utilisateur=existing.utilisateur,
+            date_reservation=reservation_date,
+            creneau=Creneau(debut=time.fromisoformat(creneau_debut), fin=time.fromisoformat(creneau_fin)),
+            statut=statut,
+            nb_personnes=nb_personnes,
+        )
+        self.reservations[reservation_id] = updated
+        return updated
+
+    def update_status(self, reservation_id: int, status: ReservationStatus) -> Reservation | None:
+        existing = self.reservations.get(reservation_id)
+        if existing is None:
+            return None
+        updated = Reservation(
+            id=existing.id,
+            plateau_id=existing.plateau_id,
+            utilisateur=existing.utilisateur,
+            date_reservation=existing.date_reservation,
+            creneau=existing.creneau,
+            statut=status,
+            nb_personnes=existing.nb_personnes,
+        )
+        self.reservations[reservation_id] = updated
+        return updated
+
+
+class InMemoryPlateauRepository(PlateauRepository):
+    def __init__(self):
+        self.plateaux: dict[int, Plateau] = {}
+
+    def create(self, plateau: Plateau) -> Plateau:
+        created = Plateau(
+            id=plateau.id,
+            nom=plateau.nom,
+            type_sport=plateau.type_sport,
+            capacite=plateau.capacite,
+            emplacement=plateau.emplacement,
+        )
+        self.plateaux[created.id or 0] = created
+        return created
+
+    def get_by_id(self, plateau_id: int) -> Plateau | None:
+        return self.plateaux.get(plateau_id)
+
+    def list_all(self) -> list[Plateau]:
+        return list(self.plateaux.values())
+
+    def update(self, plateau: Plateau) -> Plateau:
+        if plateau.id is None:
+            raise ValueError("Plateau id required")
+        self.plateaux[plateau.id] = plateau
+        return plateau
+
+    def delete(self, plateau_id: int) -> bool:
+        return self.plateaux.pop(plateau_id, None) is not None
 
 
 class TestNotificationService:
     def setup_method(self):
+        self.preference_repo = InMemoryNotificationPreferenceRepository()
         self.notification_repo = InMemoryNotificationRepository()
+        self.reminder_repo = InMemoryReminderTaskRepository()
+        self.reservation_repo = InMemoryReservationRepository()
+        self.plateau_repo = InMemoryPlateauRepository()
         self.email_sender = DummyEmailSender()
         self.sms_sender = DummySmsSender()
         self.service = NotificationService(
+            preference_repo=self.preference_repo,
             notification_repo=self.notification_repo,
+            reminder_task_repo=self.reminder_repo,
+            reservation_repo=self.reservation_repo,
+            plateau_repo=self.plateau_repo,
             email_sender=self.email_sender,
-            sms_sender=self.sms_sender
+            sms_sender=self.sms_sender,
         )
 
-    def test_notify_reservation_event_sends_email(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date.today(),
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
-        )
-        preferences = NotificationPreference(email=True, sms=False)
-
-        # When
-        self.service.notify_reservation_event(
-            event=NotificationEventType.RESERVATION_CONFIRMED,
-            user=user,
-            reservation=reservation,
-            preferences=preferences
-        )
-
-        # Then
-        assert len(self.email_sender.sent_emails) == 1
-        email = self.email_sender.sent_emails[0]
-        assert email['to'] == "test@example.com"
-        assert "confirmed" in email['subject'].lower()
-        assert "reservation" in email['body'].lower()
-
-    def test_notify_reservation_event_sends_sms(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email=None, phone="1234567890")
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date.today(),
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
-        )
-        preferences = NotificationPreference(email=False, sms=True)
-
-        # When
-        self.service.notify_reservation_event(
-            event=NotificationEventType.RESERVATION_CONFIRMED,
-            user=user,
-            reservation=reservation,
-            preferences=preferences
-        )
-
-        # Then
-        assert len(self.sms_sender.sent_sms) == 1
-        sms = self.sms_sender.sent_sms[0]
-        assert sms['to'] == "1234567890"
-        assert "confirmed" in sms['message'].lower()
-
-    def test_notify_reservation_event_no_preferences(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone="1234567890")
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date.today(),
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
-        )
-        preferences = NotificationPreference(email=False, sms=False)
-
-        # When
-        self.service.notify_reservation_event(
-            event=NotificationEventType.RESERVATION_CONFIRMED,
-            user=user,
-            reservation=reservation,
-            preferences=preferences
-        )
-
-        # Then
-        assert len(self.email_sender.sent_emails) == 0
-        assert len(self.sms_sender.sent_sms) == 0
-
-    def test_schedule_24h_reminder_for_future_date(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date(2024, 12, 25),
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
-        )
-        preferences = NotificationPreference(email=True, sms=False)
-
-        # When
-        self.service.schedule_reminder(
-            user=user,
-            reservation=reservation,
-            preferences=preferences,
-            hours_before=24
-        )
-
-        # Then
-        notifications = self.notification_repo.get_pending_notifications()
-        assert len(notifications) == 1
-        notification = notifications[0]
-        assert notification.user_id == 1
-        assert notification.type == NotificationStatus.REMINDER
-        assert notification.scheduled_for.date() == date(2024, 12, 24)  # 24h before
-        assert notification.scheduled_for.time() == time(10, 0)
-
-    def test_schedule_reminder_past_date_raises_error(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date(2020, 1, 1),  # Past date
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
-        )
-        preferences = NotificationPreference(email=True, sms=False)
-
-        # When/Then
-        with pytest.raises(ValueError, match="Cannot schedule reminder for past date"):
-            self.service.schedule_reminder(
-                user=user,
-                reservation=reservation,
-                preferences=preferences,
-                hours_before=24
+        self.plateau = self.plateau_repo.create(Plateau(id=1, nom="Gymnase A", type_sport="Basketball", capacite=10, emplacement="Centre-ville"))
+        self.reservation = self.reservation_repo.create(
+            Reservation(
+                id=None,
+                plateau_id=1,
+                utilisateur="alice",
+                date_reservation=date.today() + timedelta(days=2),
+                creneau=Creneau(debut=time(10, 0), fin=time(10, 30)),
+                statut=ReservationStatus.CONFIRMED,
+                nb_personnes=2,
             )
+        )
 
-    def test_send_daily_summary_no_reservations(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        preferences = NotificationPreference(email=True, sms=False)
+    def test_get_or_create_preferences_creates_default(self):
+        preference = self.service.get_or_create_preferences("bob")
 
-        # When
-        self.service.send_daily_summary(user=user, preferences=preferences, reservations=[])
+        assert preference.utilisateur == "bob"
+        assert preference.email == "bob@local.invalid"
+        assert preference.email_enabled is True
+        assert preference.sms_enabled is False
 
-        # Then
-        assert len(self.email_sender.sent_emails) == 1
-        email = self.email_sender.sent_emails[0]
-        assert "daily summary" in email['subject'].lower()
-        assert "no reservations" in email['body'].lower()
+    def test_update_preferences_persists_changes(self):
+        self.service.get_or_create_preferences("bob")
 
-    def test_send_daily_summary_with_reservations(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservations = [
-            Reservation(
-                id=1,
-                plateau_id=1,
-                user_id=1,
-                date=date.today(),
-                creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-                person_count=4,
-                status="confirmed"
-            ),
-            Reservation(
-                id=2,
-                plateau_id=1,
-                user_id=1,
-                date=date.today(),
-                creneau=Creneau(start=time(14, 0), end=time(15, 0)),
-                person_count=2,
-                status="confirmed"
+        updated = self.service.update_preferences(
+            utilisateur="bob",
+            email="bob@example.com",
+            telephone="1234567890",
+            email_enabled=False,
+            sms_enabled=True,
+            weekly_summary_enabled=True,
+            is_admin=True,
+        )
+
+        assert updated.utilisateur == "bob"
+        assert updated.email == "bob@example.com"
+        assert updated.telephone == "1234567890"
+        assert updated.email_enabled is False
+        assert updated.sms_enabled is True
+        assert updated.weekly_summary_enabled is True
+        assert updated.is_admin is True
+
+    def test_notify_reservation_event_sends_email_and_schedules_reminder(self):
+        result = self.service.notify_reservation_event(NotificationEventType.RESERVATION_CONFIRMED, self.reservation.id or 0)
+
+        assert len(self.email_sender.sent) == 1
+        assert len(result) == 1
+        assert result[0].status == NotificationStatus.SENT
+        assert self.reservation.id in {task.reservation_id for task in self.reminder_repo.tasks.values()}
+
+    def test_notify_reservation_event_sends_sms_when_enabled(self):
+        self.preference_repo.upsert(
+            NotificationPreference(
+                utilisateur="alice",
+                email=None,
+                telephone="0678901234",
+                email_enabled=False,
+                sms_enabled=True,
             )
-        ]
-        preferences = NotificationPreference(email=True, sms=False)
-
-        # When
-        self.service.send_daily_summary(
-            user=user,
-            preferences=preferences,
-            reservations=reservations
         )
 
-        # Then
-        assert len(self.email_sender.sent_emails) == 1
-        email = self.email_sender.sent_emails[0]
-        assert "daily summary" in email['subject'].lower()
-        assert "2 reservations" in email['body']
+        result = self.service.notify_reservation_event(NotificationEventType.RESERVATION_CONFIRMED, self.reservation.id or 0)
 
-    def test_send_weekly_summary_no_reservations(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        preferences = NotificationPreference(email=True, sms=False)
+        assert len(self.sms_sender.sent) == 1
+        assert result[0].status == NotificationStatus.SENT
 
-        # When
-        self.service.send_weekly_summary(user=user, preferences=preferences, reservations=[])
-
-        # Then
-        assert len(self.email_sender.sent_emails) == 1
-        email = self.email_sender.sent_emails[0]
-        assert "weekly summary" in email['subject'].lower()
-        assert "no reservations" in email['body'].lower()
-
-    def test_send_weekly_summary_with_reservations(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservations = [
-            Reservation(
-                id=1,
-                plateau_id=1,
-                user_id=1,
-                date=date(2024, 12, 23),
-                creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-                person_count=4,
-                status="confirmed"
-            ),
-            Reservation(
-                id=2,
-                plateau_id=1,
-                user_id=1,
-                date=date(2024, 12, 24),
-                creneau=Creneau(start=time(14, 0), end=time(15, 0)),
-                person_count=2,
-                status="confirmed"
+    def test_notify_reservation_event_creates_failed_notification_without_channels(self):
+        self.preference_repo.upsert(
+            NotificationPreference(
+                utilisateur="alice",
+                email=None,
+                telephone=None,
+                email_enabled=False,
+                sms_enabled=False,
             )
-        ]
-        preferences = NotificationPreference(email=True, sms=False)
-
-        # When
-        self.service.send_weekly_summary(
-            user=user,
-            preferences=preferences,
-            reservations=reservations
         )
 
-        # Then
-        assert len(self.email_sender.sent_emails) == 1
-        email = self.email_sender.sent_emails[0]
-        assert "weekly summary" in email['subject'].lower()
-        assert "2 reservations" in email['body']
+        result = self.service.notify_reservation_event(NotificationEventType.RESERVATION_CONFIRMED, self.reservation.id or 0)
 
-    def test_process_pending_notifications_sends_scheduled(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date.today(),
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
-        )
-        preferences = NotificationPreference(email=True, sms=False)
+        assert len(result) == 1
+        assert result[0].status == NotificationStatus.FAILED
+        assert result[0].error is not None
 
-        # Schedule a reminder
-        self.service.schedule_reminder(
-            user=user,
-            reservation=reservation,
-            preferences=preferences,
-            hours_before=24
+    def test_notify_reservation_event_raises_when_reservation_not_found(self):
+        with pytest.raises(NotFoundError):
+            self.service.notify_reservation_event(NotificationEventType.RESERVATION_CONFIRMED, 999)
+
+    def test_schedule_24h_reminder_for_today_uses_now(self):
+        today_reservation = self.reservation_repo.create(
+            Reservation(
+                id=None,
+                plateau_id=1,
+                utilisateur="alice",
+                date_reservation=date.today(),
+                creneau=Creneau(debut=time(23, 0), fin=time(23, 30)),
+                statut=ReservationStatus.CONFIRMED,
+                nb_personnes=1,
+            )
         )
 
-        # When - Process notifications (simulate current time being the scheduled time)
-        self.service.process_pending_notifications(current_time=datetime.combine(date.today(), time(10, 0)))
+        task = self.service.schedule_24h_reminder(today_reservation.id or 0)
 
-        # Then
-        assert len(self.email_sender.sent_emails) == 1
-        email = self.email_sender.sent_emails[0]
-        assert "reminder" in email['subject'].lower()
+        assert task.sent_at is None
+        assert abs((task.scheduled_for - datetime.now()).total_seconds()) < 5
 
-        # Notification should be marked as sent
-        pending = self.notification_repo.get_pending_notifications()
-        assert len(pending) == 0
-
-    def test_process_pending_notifications_ignores_future(self):
-        # Given
-        user = UserAccount(id=1, username="testuser", email="test@example.com", phone=None)
-        reservation = Reservation(
-            id=1,
-            plateau_id=1,
-            user_id=1,
-            date=date.today(),
-            creneau=Creneau(start=time(10, 0), end=time(11, 0)),
-            person_count=4,
-            status="confirmed"
+    def test_process_due_reminders_sends_reminder_and_marks_sent(self):
+        due_reservation = self.reservation_repo.create(
+            Reservation(
+                id=None,
+                plateau_id=1,
+                utilisateur="alice",
+                date_reservation=date.today(),
+                creneau=Creneau(debut=time(10, 0), fin=time(10, 30)),
+                statut=ReservationStatus.CONFIRMED,
+                nb_personnes=1,
+            )
         )
-        preferences = NotificationPreference(email=True, sms=False)
-
-        # Schedule a future reminder
-        self.service.schedule_reminder(
-            user=user,
-            reservation=reservation,
-            preferences=preferences,
-            hours_before=24
+        task = self.reminder_repo.upsert_task(
+            ReminderTask(
+                id=None,
+                reservation_id=due_reservation.id or 0,
+                utilisateur="alice",
+                reminder_type="REMINDER_24H",
+                scheduled_for=datetime.utcnow() - timedelta(minutes=1),
+                sent_at=None,
+            )
         )
 
-        # When - Process notifications before scheduled time
-        self.service.process_pending_notifications(current_time=datetime.combine(date.today(), time(9, 0)))
+        self.service.notify_reservation_event(NotificationEventType.RESERVATION_CONFIRMED, due_reservation.id or 0)
+        notifications_before = len(self.notification_repo.notifications)
 
-        # Then
-        assert len(self.email_sender.sent_emails) == 0
+        result = self.service.process_due_reminders(datetime.utcnow())
 
-        # Notification should still be pending
-        pending = self.notification_repo.get_pending_notifications()
-        assert len(pending) == 1
+        assert len(result) >= 1
+        assert self.reminder_repo.tasks[task.id].sent_at is not None
+        assert len(self.notification_repo.notifications) > notifications_before
+
+    def test_send_weekly_summary_for_admins_sends_email(self):
+        self.preference_repo.upsert(
+            NotificationPreference(
+                utilisateur="bob",
+                email="bob@example.com",
+                telephone=None,
+                email_enabled=True,
+                sms_enabled=False,
+                weekly_summary_enabled=True,
+                is_admin=True,
+            )
+        )
+        self.reservation_repo.create(
+            Reservation(
+                id=None,
+                plateau_id=1,
+                utilisateur="alice",
+                date_reservation=date.today() + timedelta(days=3),
+                creneau=Creneau(debut=time(10, 0), fin=time(10, 30)),
+                statut=ReservationStatus.CONFIRMED,
+                nb_personnes=1,
+            )
+        )
+
+        result = self.service.send_weekly_summary_for_admins()
+
+        assert len(result) == 1
+        assert self.email_sender.sent[0].destination == "bob@example.com"
+        assert result[0].event_type == NotificationEventType.WEEKLY_SUMMARY

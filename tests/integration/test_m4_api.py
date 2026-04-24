@@ -98,7 +98,7 @@ def test_m4_create_reservation_emits_notification(tmp_path) -> None:
         json={
             "plateau_id": plateau_id,
             "utilisateur": "bob",
-            "date_reservation": date.today().isoformat(),
+            "date_reservation": (date.today() + timedelta(days=1)).isoformat(),
             "creneau": {"debut": "09:00:00", "fin": "09:30:00"},
             "nb_personnes": 1,
         },
@@ -125,7 +125,7 @@ def test_m4_process_due_reminders(tmp_path) -> None:
         json={
             "plateau_id": plateau_id,
             "utilisateur": "carol",
-            "date_reservation": date.today().isoformat(),
+            "date_reservation": (date.today() - timedelta(days=1)).isoformat(),  # Yesterday
             "creneau": {"debut": "10:00:00", "fin": "10:30:00"},
             "nb_personnes": 1,
         },
