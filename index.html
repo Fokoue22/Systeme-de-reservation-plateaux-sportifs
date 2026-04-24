@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reservation Sportive - Accueil</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Barlow', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+      }
+
+      .container {
+        max-width: 1200px;
+        width: 90%;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 80px 40px;
+        text-align: center;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 30px;
+      }
+
+      .brand-mark {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 32px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: 8px;
+      }
+
+      .brand-text {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      h1 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+
+      .subtitle {
+        font-size: 18px;
+        opacity: 0.9;
+        margin-bottom: 40px;
+      }
+
+      .cta-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        padding: 14px 32px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .btn-primary {
+        background: white;
+        color: #667eea;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid white;
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .content {
+        padding: 60px 40px;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+        margin-bottom: 60px;
+      }
+
+      .feature {
+        text-align: center;
+      }
+
+      .feature-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+
+      .feature h3 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 20px;
+        margin-bottom: 12px;
+        color: #667eea;
+      }
+
+      .feature p {
+        color: #666;
+        line-height: 1.6;
+      }
+
+      .info-section {
+        background: #f8f9fa;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 40px;
+      }
+
+      .info-section h2 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 28px;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .info-section p {
+        color: #666;
+        line-height: 1.8;
+        margin-bottom: 12px;
+      }
+
+      footer {
+        background: #f8f9fa;
+        padding: 30px 40px;
+        text-align: center;
+        color: #999;
+        border-top: 1px solid #eee;
+      }
+
+      @media (max-width: 768px) {
+        .hero {
+          padding: 40px 20px;
+        }
+
+        h1 {
+          font-size: 32px;
+        }
+
+        .content {
+          padding: 30px 20px;
+        }
+
+        .cta-buttons {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <section class="hero">
+        <div class="brand">
+          <span class="brand-mark">RS</span>
+          <span class="brand-text">Reservation Sportive</span>
+        </div>
+        <h1>Reservez vos creneaux sportifs</h1>
+        <p class="subtitle">Plateforme de gestion des reservations de plateaux sportifs</p>
+        <div class="cta-buttons">
+          <a href="templates/auth_login.html" class="btn btn-primary">Se connecter</a>
+          <a href="templates/auth_register.html" class="btn btn-secondary">S'inscrire</a>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">📅</div>
+            <h3>Calendrier intuitif</h3>
+            <p>Visualisez les disponibilites et reservez vos creneaux en quelques clics.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🏟️</div>
+            <h3>Multiples plateaux</h3>
+            <p>Acces a plusieurs plateaux sportifs avec leurs caracteristiques specifiques.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">👥</div>
+            <h3>Gestion de groupe</h3>
+            <p>Reservez pour vous ou pour un groupe avec gestion des capacites.</p>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h2>Comment ca fonctionne?</h2>
+          <p><strong>1. Creez votre compte</strong> - Inscrivez-vous avec vos informations personnelles.</p>
+          <p><strong>2. Consultez le calendrier</strong> - Explorez les disponibilites des plateaux.</p>
+          <p><strong>3. Reservez votre creneau</strong> - Selectionnez la date, l'heure et le plateau.</p>
+          <p><strong>4. Confirmez votre reservation</strong> - Recevez une confirmation instantanee.</p>
+        </div>
+
+        <div class="info-section">
+          <h2>Besoin d'aide?</h2>
+          <p>Consultez notre FAQ ou contactez notre equipe de support pour toute question.</p>
+          <p>Email: support@reservation-sportive.com | Telephone: +1 (514) 000-0000</p>
+        </div>
+      </section>
+
+      <footer>
+        <p>&copy; 2026 Reservation Sportive. Tous droits reserves.</p>
+      </footer>
+    </div>
+  </body>
+</html>
