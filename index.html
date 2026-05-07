@@ -210,8 +210,21 @@
       .contact-section {
         display: grid;
         grid-template-columns: 1fr 1.2fr;
-        gap: 60px;
+        gap: 80px;
         align-items: center;
+        position: relative;
+      }
+
+      .contact-section::before {
+        content: '';
+        position: absolute;
+        top: -20px;
+        left: -20px;
+        right: -20px;
+        bottom: -20px;
+        background: linear-gradient(135deg, rgba(47, 158, 97, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
+        border-radius: 32px;
+        z-index: -1;
       }
 
       .contact-form {
@@ -230,36 +243,69 @@
       .contact-form input,
       .contact-form textarea {
         width: 100%;
-        padding: 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
+        padding: 16px 14px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
         font-size: 1rem;
         font-family: 'Barlow', sans-serif;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        background: #fafbfc;
+      }
+
+      .contact-form input:focus,
+      .contact-form textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(47, 158, 97, 0.1);
+        background: white;
       }
 
       .contact-form label {
         display: block;
         font-weight: 600;
-        color: #111827;
-        margin-bottom: 8px;
-        font-size: 0.9rem;
+        color: var(--text);
+        margin-bottom: 10px;
+        font-size: 0.95rem;
       }
 
       .contact-form button {
         width: 100%;
-        padding: 16px;
+        padding: 18px 24px;
         background: linear-gradient(135deg, var(--primary), var(--primary-dark));
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 12px;
         font-weight: 700;
-        font-size: 1rem;
+        font-size: 1.1rem;
         cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(47, 158, 97, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .contact-form button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+      }
+
+      .contact-form button:hover::before {
+        left: 100%;
       }
 
       .contact-form button:hover {
         transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(47, 158, 97, 0.4);
+      }
+
+      .contact-form button:active {
+        transform: translateY(0);
       }
 
       .contact-benefits {
@@ -467,27 +513,27 @@
 
       <section class="hero" id="contact">
         <div class="hero-card">
-          <div class="hero-top" style="text-align: center; max-width: 100%;">
-            <h1>Améliorez vos réservations dès aujourd'hui</h1>
-            <p>Découvrez comment nous pouvons vous aider à attirer plus de clients et améliorer votre gestion.</p>
+          <div class="hero-top" style="text-align: center; max-width: 100%; margin-bottom: 40px;">
+            <h1 style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;">Améliorez vos réservations dès aujourd'hui</h1>
+            <p style="font-size: 1.2rem; color: var(--text); font-weight: 500;">Découvrez comment nous pouvons vous aider à attirer plus de clients et améliorer votre gestion.</p>
           </div>
 
           <div class="contact-section">
             <!-- Texte à gauche -->
             <div>
-              <p style="color: #475569; font-size: 1.05rem; margin: 0 0 24px; line-height: 1.8; font-weight: 600;">Pourquoi nous choisir :</p>
+              <p style="color: #475569; font-size: 1.05rem; margin: 0 0 32px; line-height: 1.8; font-weight: 600;">Pourquoi nous choisir :</p>
               <ul class="contact-benefits">
                 <li>
-                  <span>✓</span>
-                  Attirer plus de nouveaux clients
+                  <div class="benefit-icon">✓</div>
+                  <p class="benefit-text">Attirer plus de nouveaux clients avec une plateforme moderne et intuitive</p>
                 </li>
                 <li>
-                  <span>✓</span>
-                  Améliorer la fidélité des membres
+                  <div class="benefit-icon">📈</div>
+                  <p class="benefit-text">Améliorer la fidélité des membres grâce à une expérience utilisateur exceptionnelle</p>
                 </li>
                 <li>
-                  <span>✓</span>
-                  Accélérer votre croissance avec nos outils
+                  <div class="benefit-icon">⚡</div>
+                  <p class="benefit-text">Accélérer votre croissance avec des outils puissants et une gestion simplifiée</p>
                 </li>
               </ul>
             </div>
