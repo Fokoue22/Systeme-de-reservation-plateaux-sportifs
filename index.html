@@ -268,6 +268,50 @@
         font-size: 0.95rem;
       }
 
+      .contact-options {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 12px;
+      }
+
+      .contact-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .contact-option:hover {
+        border-color: var(--primary);
+        transform: translateY(-1px);
+      }
+
+      .contact-option input {
+        accent-color: var(--primary);
+        width: 20px;
+        height: 20px;
+      }
+
+      .contact-option span {
+        display: block;
+        text-align: center;
+        color: var(--text);
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      .contact-option input:checked + span {
+        color: var(--primary);
+      }
+
       .contact-form button {
         width: 100%;
         padding: 18px 24px;
@@ -524,15 +568,15 @@
               <p style="color: #475569; font-size: 1.05rem; margin: 0 0 32px; line-height: 1.8; font-weight: 600;">Pourquoi nous choisir :</p>
               <ul class="contact-benefits">
                 <li>
-                  <div class="benefit-icon">✓</div>
+                  <div class="benefit-icon"></div>
                   <p class="benefit-text">Attirer plus de nouveaux clients avec une plateforme moderne et intuitive</p>
                 </li>
                 <li>
-                  <div class="benefit-icon">📈</div>
+                  <div class="benefit-icon"></div>
                   <p class="benefit-text">Améliorer la fidélité des membres grâce à une expérience utilisateur exceptionnelle</p>
                 </li>
                 <li>
-                  <div class="benefit-icon">⚡</div>
+                  <div class="benefit-icon"></div>
                   <p class="benefit-text">Accélérer votre croissance avec des outils puissants et une gestion simplifiée</p>
                 </li>
               </ul>
@@ -570,18 +614,18 @@
 
                 <div>
                   <label>Type de structure</label>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                  <div class="contact-options">
+                    <label class="contact-option">
                       <input type="radio" name="industry" value="sports">
-                      <span style="color: #475569; font-weight: 500;">Club sportif</span>
+                      <span>Club sportif</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                    <label class="contact-option">
                       <input type="radio" name="industry" value="gym">
-                      <span style="color: #475569; font-weight: 500;">Salle de sport</span>
+                      <span>Salle de sport</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                    <label class="contact-option">
                       <input type="radio" name="industry" value="other">
-                      <span style="color: #475569; font-weight: 500;">Autre</span>
+                      <span>Autre</span>
                     </label>
                   </div>
                 </div>
