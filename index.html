@@ -207,6 +207,93 @@
         font-weight: 700;
       }
 
+      .contact-section {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 60px;
+        align-items: center;
+      }
+
+      .contact-form {
+        background: white;
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28);
+        border: 1px solid var(--border);
+      }
+
+      .contact-form form {
+        display: grid;
+        gap: 20px;
+      }
+
+      .contact-form input,
+      .contact-form textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Barlow', sans-serif;
+      }
+
+      .contact-form label {
+        display: block;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+
+      .contact-form button {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .contact-form button:hover {
+        transform: translateY(-2px);
+      }
+
+      .contact-benefits {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .contact-benefits li {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .contact-benefits li:last-child {
+        margin-bottom: 0;
+      }
+
+      .contact-benefits span {
+        width: 24px;
+        height: 24px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
       footer {
         padding: 24px 0 14px;
         text-align: center;
@@ -226,6 +313,11 @@
 
         .hero-top h1 {
           font-size: 2.5rem;
+        }
+
+        .contact-section {
+          grid-template-columns: 1fr;
+          gap: 40px;
         }
       }
     </style>
@@ -365,84 +457,87 @@
         </div>
       </section>
 
-      <section id="contact" style="padding: 80px 0; background: linear-gradient(135deg, rgba(47, 158, 97, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);">
-        <div class="page">
-          <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px; align-items: center;">
+      <section class="hero" id="contact">
+        <div class="hero-card">
+          <div class="hero-top" style="text-align: center; max-width: 100%;">
+            <h1>Améliorez vos réservations dès aujourd'hui</h1>
+            <p>Découvrez comment nous pouvons vous aider à attirer plus de clients et améliorer votre gestion.</p>
+          </div>
+
+          <div class="contact-section">
             <!-- Texte à gauche -->
             <div>
-              <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem; margin: 0 0 20px; color: #111827; line-height: 1.2;">Améliorez vos réservations dès aujourd'hui</h1>
-              <p style="color: #475569; font-size: 1.05rem; margin: 0 0 30px; line-height: 1.8;">Découvrez comment nous pouvons vous aider :</p>
-              
-              <ul style="list-style: none; padding: 0; margin: 0;">
-                <li style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: #2f9e61; font-weight: 600;">
-                  <span style="width: 24px; height: 24px; background: #2f9e61; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">✓</span>
+              <p style="color: #475569; font-size: 1.05rem; margin: 0 0 24px; line-height: 1.8; font-weight: 600;">Pourquoi nous choisir :</p>
+              <ul class="contact-benefits">
+                <li>
+                  <span>✓</span>
                   Attirer plus de nouveaux clients
                 </li>
-                <li style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: #2f9e61; font-weight: 600;">
-                  <span style="width: 24px; height: 24px; background: #2f9e61; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">✓</span>
+                <li>
+                  <span>✓</span>
                   Améliorer la fidélité des membres
                 </li>
-                <li style="display: flex; align-items: center; gap: 12px; color: #2f9e61; font-weight: 600;">
-                  <span style="width: 24px; height: 24px; background: #2f9e61; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">✓</span>
+                <li>
+                  <span>✓</span>
                   Accélérer votre croissance avec nos outils
                 </li>
               </ul>
             </div>
 
             <!-- Formulaire à droite -->
-            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12); border: 1px solid rgba(15, 23, 42, 0.08);">
-              <form style="display: grid; gap: 20px;">
+            <div class="contact-form">
+              <form>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                   <div>
-                    <label style="display: block; font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 0.9rem;">Prénom</label>
-                    <input type="text" placeholder="Votre prénom" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                    <label>Prénom</label>
+                    <input type="text" placeholder="Votre prénom">
                   </div>
                   <div>
-                    <label style="display: block; font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 0.9rem;">Nom</label>
-                    <input type="text" placeholder="Votre nom" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                    <label>Nom</label>
+                    <input type="text" placeholder="Votre nom">
                   </div>
                 </div>
 
                 <div>
-                  <label style="display: block; font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 0.9rem;">Nom du club/organisation</label>
-                  <input type="text" placeholder="Ex: Club de Tennis Central" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                  <label>Nom du club/organisation</label>
+                  <input type="text" placeholder="Ex: Club de Tennis Central">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                   <div>
-                    <label style="display: block; font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 0.9rem;">Email</label>
-                    <input type="email" placeholder="contact@club.com" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                    <label>Email</label>
+                    <input type="email" placeholder="contact@club.com">
                   </div>
                   <div>
-                    <label style="display: block; font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 0.9rem;">Téléphone</label>
-                    <input type="tel" placeholder="+1(514) 123-4567" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                    <label>Téléphone</label>
+                    <input type="tel" placeholder="+1(514) 123-4567">
                   </div>
                 </div>
 
                 <div>
-                  <label style="display: block; font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 0.9rem;">Type de structure</label>
+                  <label>Type de structure</label>
                   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
                       <input type="radio" name="industry" value="sports">
-                      <span style="color: #475569;">Club sportif</span>
+                      <span style="color: #475569; font-weight: 500;">Club sportif</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
                       <input type="radio" name="industry" value="gym">
-                      <span style="color: #475569;">Salle de sport</span>
+                      <span style="color: #475569; font-weight: 500;">Salle de sport</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
                       <input type="radio" name="industry" value="other">
-                      <span style="color: #475569;">Autre</span>
+                      <span style="color: #475569; font-weight: 500;">Autre</span>
                     </label>
                   </div>
                 </div>
 
-                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
                   <input type="checkbox" style="margin-top: 4px;">
-                  <span style="color: #475569; font-size: 0.85rem;">En soumettant ce formulaire, j'accepte de recevoir des communications marketing. <a href="#" style="color: #2f9e61; text-decoration: none; font-weight: 600;">Politique de confidentialité</a></span>
+                  <span style="color: #475569; font-size: 0.85rem;">En soumettant ce formulaire, j'accepte de recevoir des communications marketing. <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 600;">Politique de confidentialité</a></span>
                 </label>
 
-                <button type="submit" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #2f9e61, #1d6f45); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.2s ease;">PARLONS-EN</button>
+                <button type="submit">PARLONS-EN</button>
               </form>
             </div>
           </div>
