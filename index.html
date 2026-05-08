@@ -340,14 +340,15 @@
       }
 
       .contact-legal {
-        display: inline-grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: center;
+        display: inline-flex;
+        align-items: flex-start;
         gap: 12px;
+        flex-wrap: wrap;
         width: 100%;
       }
 
       .contact-legal span {
+        display: inline-block;
         color: #475569;
         font-size: 0.85rem;
         line-height: 1.6;
@@ -355,9 +356,9 @@
       }
 
       .contact-legal input {
-        margin-top: 0;
+        margin: 0;
+        margin-top: 3px;
         accent-color: var(--primary);
-        vertical-align: middle;
       }
 
       .contact-form button:hover::before {
