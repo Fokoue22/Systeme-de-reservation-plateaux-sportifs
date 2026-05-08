@@ -340,17 +340,19 @@
       }
 
       .checkline {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: start;
-        gap: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
         font-size: 17px;
         font-weight: 500;
         color: #4a556f;
       }
 
       .checkline input {
-        margin-top: 4px;
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: var(--primary);
       }
 
       .contact-form button:hover::before {
