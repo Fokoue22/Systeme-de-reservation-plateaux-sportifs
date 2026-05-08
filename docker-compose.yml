@@ -1,11 +1,82 @@
 version: '3.8'
+
 services:
-  app:
-    build: .
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: reservation-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-reservation_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-reservation_password}
+      POSTGRES_DB: ${DB_NAME:-reservation_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-reservation_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reservation-network
+
+  # API Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: reservation-api
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
+      DATABASE_URL: sqlite:///./reservation.db
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      LOG_LEVEL: INFO
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
-    environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
+      - ./app:/app/app
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./Images:/app/Images
+      - ./reservation.db:/app/reservation.db
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - reservation-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend (Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: reservation-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - reservation-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  reservation-network:
+    driver: bridge
