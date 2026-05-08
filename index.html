@@ -339,26 +339,18 @@
         transition: left 0.5s;
       }
 
-      .contact-legal {
-        display: inline-flex;
-        align-items: flex-start;
-        gap: 12px;
-        flex-wrap: wrap;
-        width: 100%;
+      .checkline {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: start;
+        gap: 10px;
+        font-size: 17px;
+        font-weight: 500;
+        color: #4a556f;
       }
 
-      .contact-legal span {
-        display: inline-block;
-        color: #475569;
-        font-size: 0.85rem;
-        line-height: 1.6;
-        max-width: 100%;
-      }
-
-      .contact-legal input {
-        margin: 0;
-        margin-top: 3px;
-        accent-color: var(--primary);
+      .checkline input {
+        margin-top: 4px;
       }
 
       .contact-form button:hover::before {
@@ -652,7 +644,7 @@
                   </div>
                 </div>
 
-                <label class="contact-legal">
+                <label class="checkline">
                   <input type="checkbox">
                   <span>En soumettant ce formulaire, j'accepte de recevoir des communications marketing. <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 600;">Politique de confidentialité</a></span>
                 </label>
