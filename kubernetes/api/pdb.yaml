@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+  namespace: reservation
+  labels:
+    app: reservation
+    component: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: reservation
+      component: api
+  unhealthyPodEvictionPolicy: AlwaysAllow
