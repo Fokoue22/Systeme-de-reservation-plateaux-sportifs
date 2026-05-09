@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reservation
+  labels:
+    name: reservation
+    environment: development
+  annotations:
+    description: "Namespace for sports reservation system"
