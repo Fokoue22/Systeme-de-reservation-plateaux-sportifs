@@ -40,8 +40,8 @@ resource "aws_db_instance" "main" {
   skip_final_snapshot    = var.skip_final_snapshot
   final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.identifier}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
 
-  enable_cloudwatch_logs_exports = var.enable_cloudwatch_logs_exports
-  enable_iam_database_authentication = var.enable_iam_database_authentication
+  iam_database_authentication_enabled = var.enable_iam_database_authentication
+  enabled_cloudwatch_logs_exports    = var.enable_cloudwatch_logs_exports
   deletion_protection    = var.deletion_protection
 
   tags = merge(
