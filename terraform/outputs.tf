@@ -1,150 +1,153 @@
 # VPC Outputs
 output "vpc_id" {
   description = "ID of the VPC"
-  value       = aws_vpc.main.id
+  value       = module.vpc.vpc_id
 }
 
 output "vpc_cidr" {
   description = "CIDR block of the VPC"
-  value       = aws_vpc.main.cidr_block
+  value       = module.vpc.vpc_cidr
 }
 
 output "public_subnet_ids" {
   description = "IDs of public subnets"
-  value       = aws_subnet.public[*].id
+  value       = module.vpc.public_subnet_ids
 }
 
 output "private_subnet_ids" {
   description = "IDs of private subnets"
-  value       = aws_subnet.private[*].id
+  value       = module.vpc.private_subnet_ids
 }
 
 output "database_subnet_ids" {
   description = "IDs of database subnets"
-  value       = aws_subnet.database[*].id
+  value       = module.vpc.database_subnet_ids
+}
+
+output "internet_gateway_id" {
+  description = "Internet Gateway ID"
+  value       = module.vpc.internet_gateway_id
+}
+
+output "nat_gateway_ids" {
+  description = "NAT Gateway IDs"
+  value       = module.vpc.nat_gateway_ids
 }
 
 # EKS Outputs
 output "eks_cluster_id" {
   description = "EKS cluster ID"
-  value       = aws_eks_cluster.main.id
+  value       = module.eks.cluster_id
 }
 
 output "eks_cluster_arn" {
   description = "EKS cluster ARN"
-  value       = aws_eks_cluster.main.arn
+  value       = module.eks.cluster_arn
 }
 
 output "eks_cluster_endpoint" {
   description = "EKS cluster endpoint"
-  value       = aws_eks_cluster.main.endpoint
+  value       = module.eks.cluster_endpoint
 }
 
 output "eks_cluster_version" {
   description = "EKS cluster Kubernetes version"
-  value       = aws_eks_cluster.main.version
+  value       = module.eks.cluster_version
 }
 
 output "eks_cluster_certificate_authority" {
   description = "EKS cluster certificate authority data"
-  value       = aws_eks_cluster.main.certificate_authority[0].data
+  value       = module.eks.cluster_certificate_authority
   sensitive   = true
 }
 
 output "eks_node_group_id" {
   description = "EKS node group ID"
-  value       = aws_eks_node_group.main.id
+  value       = module.eks.node_group_id
 }
 
 output "eks_node_group_status" {
   description = "EKS node group status"
-  value       = aws_eks_node_group.main.status
+  value       = module.eks.node_group_status
+}
+
+output "eks_cluster_security_group_id" {
+  description = "EKS cluster security group ID"
+  value       = module.eks.cluster_security_group_id
+}
+
+output "eks_cluster_role_arn" {
+  description = "EKS cluster IAM role ARN"
+  value       = module.eks.cluster_role_arn
+}
+
+output "eks_node_role_arn" {
+  description = "EKS node IAM role ARN"
+  value       = module.eks.node_role_arn
 }
 
 # RDS Outputs
 output "rds_endpoint" {
   description = "RDS database endpoint"
-  value       = aws_db_instance.main.endpoint
+  value       = module.rds.db_instance_endpoint
 }
 
 output "rds_address" {
   description = "RDS database address"
-  value       = aws_db_instance.main.address
+  value       = module.rds.db_instance_address
 }
 
 output "rds_port" {
   description = "RDS database port"
-  value       = aws_db_instance.main.port
+  value       = module.rds.db_instance_port
 }
 
 output "rds_database_name" {
   description = "RDS database name"
-  value       = aws_db_instance.main.db_name
+  value       = module.rds.db_name
 }
 
 output "rds_username" {
   description = "RDS master username"
-  value       = aws_db_instance.main.username
+  value       = module.rds.db_username
   sensitive   = true
 }
 
 output "rds_resource_id" {
   description = "RDS resource ID"
-  value       = aws_db_instance.main.resource_id
+  value       = module.rds.db_instance_resource_id
+}
+
+output "rds_security_group_id" {
+  description = "RDS security group ID"
+  value       = module.rds.security_group_id
 }
 
 # ECR Outputs
 output "ecr_api_repository_url" {
   description = "ECR repository URL for API image"
-  value       = aws_ecr_repository.api.repository_url
+  value       = module.ecr.api_repository_url
 }
 
 output "ecr_frontend_repository_url" {
   description = "ECR repository URL for Frontend image"
-  value       = aws_ecr_repository.frontend.repository_url
+  value       = module.ecr.frontend_repository_url
 }
 
 output "ecr_registry_id" {
   description = "ECR registry ID"
-  value       = aws_ecr_repository.api.registry_id
-}
-
-# Security Group Outputs
-output "eks_security_group_id" {
-  description = "EKS cluster security group ID"
-  value       = aws_security_group.eks_cluster.id
-}
-
-output "eks_node_security_group_id" {
-  description = "EKS node security group ID"
-  value       = aws_security_group.eks_nodes.id
-}
-
-output "rds_security_group_id" {
-  description = "RDS security group ID"
-  value       = aws_security_group.rds.id
-}
-
-# IAM Outputs
-output "eks_cluster_role_arn" {
-  description = "EKS cluster IAM role ARN"
-  value       = aws_iam_role.eks_cluster_role.arn
-}
-
-output "eks_node_role_arn" {
-  description = "EKS node IAM role ARN"
-  value       = aws_iam_role.eks_node_role.arn
+  value       = module.ecr.api_registry_id
 }
 
 # Kubernetes Configuration
 output "configure_kubectl" {
   description = "Command to configure kubectl"
-  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.main.name}"
+  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_id}"
 }
 
 output "kubernetes_cluster_name" {
   description = "Kubernetes cluster name"
-  value       = aws_eks_cluster.main.name
+  value       = module.eks.cluster_id
 }
 
 # Summary Output
@@ -153,11 +156,14 @@ output "deployment_summary" {
   value = {
     region              = var.aws_region
     environment         = var.environment
-    vpc_cidr            = aws_vpc.main.cidr_block
-    eks_cluster_name    = aws_eks_cluster.main.name
-    eks_cluster_version = aws_eks_cluster.main.version
-    rds_endpoint        = aws_db_instance.main.endpoint
-    ecr_api_url         = aws_ecr_repository.api.repository_url
-    ecr_frontend_url    = aws_ecr_repository.frontend.repository_url
+    vpc_cidr            = module.vpc.vpc_cidr
+    vpc_id              = module.vpc.vpc_id
+    eks_cluster_name    = module.eks.cluster_id
+    eks_cluster_version = module.eks.cluster_version
+    eks_endpoint        = module.eks.cluster_endpoint
+    rds_endpoint        = module.rds.db_instance_endpoint
+    rds_address         = module.rds.db_instance_address
+    ecr_api_url         = module.ecr.api_repository_url
+    ecr_frontend_url    = module.ecr.frontend_repository_url
   }
 }
