@@ -632,6 +632,63 @@ export AWS_DEFAULT_REGION="us-east-1"
 aws sts get-caller-identity
 ```
 
+### Step 7: Apply Infrastructure
+
+```bash
+# Apply the infrastructure to AWS
+terraform apply \
+  -var-file=environments/development/terraform.tfvars \
+  -auto-approve
+
+# This will create:
+# - VPC with subnets, NAT gateways, route tables
+# - EKS cluster with node groups
+# - RDS PostgreSQL database
+# - ECR repositories
+# - Security groups and IAM roles
+# - CloudWatch log groups
+```
+
+**Expected Duration**: 15-20 minutes (EKS cluster creation is the longest step)
+
+**What Gets Created**:
+- 1 VPC with 9 subnets (3 public, 3 private, 3 database)
+- 3 NAT Gateways (one per AZ)
+- 1 EKS Cluster (Kubernetes 1.28)
+- 1 EKS Node Group (2 t3.medium nodes)
+- 1 RDS PostgreSQL Instance (db.t3.micro)
+- 2 ECR Repositories (API and Frontend)
+- Multiple security groups, IAM roles, and CloudWatch log groups
+
+**Verify Deployment**:
+
+```bash
+# Check Terraform state
+terraform show
+
+# Get outputs
+terraform output
+
+# Verify AWS resources
+aws eks list-clusters
+aws rds describe-db-instances
+aws ecr describe-repositories
+```
+
+### Step 8: Configure kubectl
+
+```bash
+# Update kubeconfig
+aws eks update-kubeconfig \
+  --region us-east-1 \
+  --name reservation-development-eks
+
+# Verify cluster access
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
 ### Cleanup
 
 ```bash
@@ -644,6 +701,9 @@ rm -f terraform.tfstate*
 # Remove Terraform cache
 rm -rf .terraform
 rm -f .terraform.lock.hcl
+
+# Destroy infrastructure (when done)
+terraform destroy -var-file=environments/development/terraform.tfvars
 ```
 
 ## Next Steps
@@ -652,7 +712,7 @@ rm -f .terraform.lock.hcl
 2. **Enable state locking** - Use DynamoDB for locking
 3. **Add monitoring modules** - CloudWatch, Prometheus, Grafana
 4. **Create CI/CD integration** - GitHub Actions for Terraform
-5. **Deploy to AWS** - Apply Terraform to create infrastructure
+5. **Deploy applications** - Push Docker images to ECR and deploy to EKS
 
 ## Usage
 
