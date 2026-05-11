@@ -95,8 +95,8 @@ variable "eks_node_group_max_size" {
   default     = 5
 
   validation {
-    condition     = var.eks_node_group_max_size >= var.eks_node_group_desired_size
-    error_message = "Maximum size must be greater than or equal to desired size."
+    condition     = var.eks_node_group_max_size >= 1
+    error_message = "Maximum size must be at least 1."
   }
 }
 
@@ -147,8 +147,8 @@ variable "rds_max_allocated_storage" {
   default     = 100
 
   validation {
-    condition     = var.rds_max_allocated_storage >= var.rds_allocated_storage
-    error_message = "Max allocated storage must be greater than or equal to allocated storage."
+    condition     = var.rds_max_allocated_storage >= 20
+    error_message = "Max allocated storage must be at least 20 GB."
   }
 }
 

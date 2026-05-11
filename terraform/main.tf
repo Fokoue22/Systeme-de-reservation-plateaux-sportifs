@@ -40,24 +40,20 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  host                   = aws_eks_cluster.main.endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority)
   token                  = data.aws_eks_cluster_auth.main.token
-
-  depends_on = [aws_eks_node_group.main]
 }
 
 provider "helm" {
   kubernetes {
-    host                   = aws_eks_cluster.main.endpoint
-    cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority)
     token                  = data.aws_eks_cluster_auth.main.token
   }
-
-  depends_on = [aws_eks_node_group.main]
 }
 
 # Data source for EKS cluster authentication
 data "aws_eks_cluster_auth" "main" {
-  name = aws_eks_cluster.main.name
+  name = module.eks.cluster_id
 }
