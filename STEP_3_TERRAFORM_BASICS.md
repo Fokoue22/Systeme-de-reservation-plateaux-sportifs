@@ -306,11 +306,443 @@ Each environment directory contains:
 19. `feat: add development environment README`
 20. `feat: add staging environment README`
 21. `feat: add production environment README`
+22. `docs: add comprehensive documentation for Step 3 - Terraform Basics`
+23. `feat: add VPC module instantiation`
+24. `feat: add EKS module instantiation`
+25. `feat: add RDS module instantiation`
+26. `feat: add ECR module instantiation`
+27. `refactor: update outputs to reference module outputs`
+28. `feat: add Makefile for Terraform operations`
+29. `feat: add Terraform validation script`
+
+## 2. Define Basic Infrastructure
+
+### Root-Level Module Calls
+
+We've created root-level configuration files that instantiate all modules:
+
+#### vpc.tf
+```hcl
+module "vpc" {
+  source = "./modules/vpc"
+  
+  name_prefix = local.name_prefix
+  vpc_cidr    = var.vpc_cidr
+  
+  availability_zones    = var.availability_zones
+  public_subnet_cidrs   = var.public_subnet_cidrs
+  private_subnet_cidrs  = var.private_subnet_cidrs
+  database_subnet_cidrs = var.database_subnet_cidrs
+  
+  enable_nat_gateway = local.enable_nat_gateway
+  enable_flow_logs   = local.enable_flow_logs
+  
+  tags = local.common_tags
+}
+```
+
+#### eks.tf
+```hcl
+module "eks" {
+  source = "./modules/eks"
+  
+  cluster_name    = local.eks_cluster_name
+  cluster_version = local.eks_config.cluster_version
+  
+  vpc_id              = module.vpc.vpc_id
+  public_subnet_ids   = module.vpc.public_subnet_ids
+  private_subnet_ids  = module.vpc.private_subnet_ids
+  
+  desired_size   = local.eks_node_group_config.desired_size
+  min_size       = local.eks_node_group_config.min_size
+  max_size       = local.eks_node_group_config.max_size
+  instance_types = local.eks_node_group_config.instance_types
+  
+  tags = local.common_tags
+  
+  depends_on = [module.vpc]
+}
+```
+
+#### rds.tf
+```hcl
+module "rds" {
+  source = "./modules/rds"
+  
+  identifier = local.rds_identifier
+  
+  vpc_id              = module.vpc.vpc_id
+  database_subnet_ids = module.vpc.database_subnet_ids
+  allowed_cidr_blocks = var.private_subnet_cidrs
+  
+  engine         = local.rds_config.engine
+  engine_version = local.rds_config.engine_version
+  instance_class = local.rds_config.instance_class
+  
+  db_name  = var.db_name
+  username = var.db_username
+  password = var.db_password
+  
+  tags = local.common_tags
+  
+  depends_on = [module.vpc]
+}
+```
+
+#### ecr.tf
+```hcl
+module "ecr" {
+  source = "./modules/ecr"
+  
+  name_prefix = local.name_prefix
+  
+  api_repository_name      = local.ecr_api_name
+  frontend_repository_name = local.ecr_frontend_name
+  
+  image_tag_mutability = local.ecr_config.image_tag_mutability
+  scan_on_push         = local.ecr_config.scan_on_push
+  
+  aws_account_id = var.aws_account_id
+  
+  tags = local.common_tags
+}
+```
+
+### Infrastructure Dependencies
+
+The modules are organized with proper dependencies:
+
+```
+VPC (Foundation)
+├── EKS (depends on VPC)
+├── RDS (depends on VPC)
+└── ECR (independent)
+```
+
+### Outputs Integration
+
+All module outputs are exposed at the root level for easy access:
+
+```hcl
+output "vpc_id" {
+  value = module.vpc.vpc_id
+}
+
+output "eks_cluster_endpoint" {
+  value = module.eks.cluster_endpoint
+}
+
+output "rds_endpoint" {
+  value = module.rds.db_instance_endpoint
+}
+
+output "ecr_api_repository_url" {
+  value = module.ecr.api_repository_url
+}
+```
+
+## 3. Test Locally
+
+### Prerequisites
+
+**Required Tools:**
+1. **Terraform** (>= 1.0)
+   - Download: https://www.terraform.io/downloads.html
+   - Verify: `terraform version`
+
+2. **AWS CLI** (>= 2.0)
+   - Download: https://aws.amazon.com/cli/
+   - Verify: `aws --version`
+
+3. **AWS Credentials**
+   - Configure: `aws configure`
+   - Verify: `aws sts get-caller-identity`
+
+### Testing Workflow
+
+#### Step 1: Initialize Terraform
+
+```bash
+cd terraform
+terraform init -upgrade
+
+# This will:
+# - Download required providers
+# - Create .terraform directory
+# - Generate .terraform.lock.hcl
+```
+
+#### Step 2: Validate Configuration
+
+```bash
+# Validate syntax and structure
+terraform validate
+
+# Expected output:
+# Success! The configuration is valid.
+```
+
+#### Step 3: Format Check
+
+```bash
+# Check if code is properly formatted
+terraform fmt -check -recursive
+
+# Auto-format if needed
+terraform fmt -recursive
+```
+
+#### Step 4: Validate Modules
+
+```bash
+# Validate each module independently
+for module in modules/*/; do
+  (cd "$module" && terraform validate)
+done
+```
+
+#### Step 5: Plan Infrastructure
+
+```bash
+# Create a plan for development environment
+terraform plan \
+  -var-file=environments/development/terraform.tfvars \
+  -out=tfplan
+
+# Review the plan
+terraform show tfplan
+```
+
+#### Step 6: Review Plan Output
+
+```bash
+# Count resources to be created
+terraform show tfplan | grep "^resource" | wc -l
+
+# Show specific resource types
+terraform show tfplan | grep "aws_eks_cluster"
+terraform show tfplan | grep "aws_db_instance"
+terraform show tfplan | grep "aws_ecr_repository"
+```
+
+### Using the Validation Script
+
+```bash
+chmod +x terraform/validate.sh
+
+# Run full validation
+./terraform/validate.sh full development
+
+# Run specific validation
+./terraform/validate.sh init
+./terraform/validate.sh validate
+./terraform/validate.sh format
+./terraform/validate.sh modules
+./terraform/validate.sh plan development
+./terraform/validate.sh show-plan
+```
+
+### Using the Makefile
+
+```bash
+cd terraform
+
+# Initialize
+make init ENVIRONMENT=development
+
+# Validate
+make validate
+
+# Format
+make fmt
+
+# Plan
+make plan ENVIRONMENT=development
+
+# Test all
+make test
+
+# Show outputs
+make output
+
+# Show state
+make state
+```
+
+### Testing Different Environments
+
+#### Development Environment
+
+```bash
+terraform plan \
+  -var-file=environments/development/terraform.tfvars \
+  -out=tfplan-dev
+
+terraform show tfplan-dev
+```
+
+#### Staging Environment
+
+```bash
+terraform plan \
+  -var-file=environments/staging/terraform.tfvars \
+  -out=tfplan-staging
+
+terraform show tfplan-staging
+```
+
+#### Production Environment
+
+```bash
+terraform plan \
+  -var-file=environments/production/terraform.tfvars \
+  -out=tfplan-prod
+
+terraform show tfplan-prod
+```
+
+### Testing Specific Modules
+
+#### Test VPC Only
+
+```bash
+terraform plan \
+  -var-file=environments/development/terraform.tfvars \
+  -target=module.vpc \
+  -out=tfplan-vpc
+
+terraform show tfplan-vpc
+```
+
+#### Test EKS Only
+
+```bash
+terraform plan \
+  -var-file=environments/development/terraform.tfvars \
+  -target=module.eks \
+  -out=tfplan-eks
+
+terraform show tfplan-eks
+```
+
+#### Test RDS Only
+
+```bash
+terraform plan \
+  -var-file=environments/development/terraform.tfvars \
+  -target=module.rds \
+  -out=tfplan-rds
+
+terraform show tfplan-rds
+```
+
+#### Test ECR Only
+
+```bash
+terraform plan \
+  -var-file=environments/development/terraform.tfvars \
+  -target=module.ecr \
+  -out=tfplan-ecr
+
+terraform show tfplan-ecr
+```
+
+### Common Issues and Solutions
+
+#### Issue: "Provider not found"
+
+**Error:**
+```
+Error: Failed to query available provider packages
+```
+
+**Solution:**
+```bash
+terraform init -upgrade
+```
+
+#### Issue: "Invalid variable"
+
+**Error:**
+```
+Error: Unsupported argument
+```
+
+**Solution:**
+1. Check variable names in `variables.tf`
+2. Verify `terraform.tfvars` syntax
+3. Run `terraform validate`
+
+#### Issue: "Module not found"
+
+**Error:**
+```
+Error: Module not found
+```
+
+**Solution:**
+```bash
+# Ensure module directories exist
+ls -la modules/
+
+# Verify module paths in root configuration
+grep "source =" *.tf
+```
+
+#### Issue: "AWS credentials not found"
+
+**Error:**
+```
+Error: error configuring Terraform AWS Provider: no valid credential sources for Terraform AWS Provider found
+```
+
+**Solution:**
+```bash
+# Configure AWS credentials
+aws configure
+
+# Or set environment variables
+export AWS_ACCESS_KEY_ID="your-key"
+export AWS_SECRET_ACCESS_KEY="your-secret"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# Verify credentials
+aws sts get-caller-identity
+```
+
+### Pre-Deployment Checklist
+
+Before applying Terraform to AWS, verify:
+
+- [ ] Terraform initialized successfully
+- [ ] Configuration validates without errors
+- [ ] Code is properly formatted
+- [ ] All modules validate
+- [ ] Plan shows expected resources
+- [ ] AWS credentials are configured
+- [ ] Correct environment selected (dev/staging/prod)
+- [ ] terraform.tfvars has correct values
+- [ ] No sensitive data in version control
+- [ ] Plan reviewed and approved
+
+### Cleanup
+
+```bash
+# Remove plan files
+rm -f tfplan*
+
+# Remove Terraform state (local only)
+rm -f terraform.tfstate*
+
+# Remove Terraform cache
+rm -rf .terraform
+rm -f .terraform.lock.hcl
+```
 
 ## Next Steps
 
-1. **Implement root-level module calls** - Create the main infrastructure configuration
-2. **Set up remote state** - Configure S3 backend for state management
+1. **Set up remote state** - Configure S3 backend for state management
+2. **Enable state locking** - Use DynamoDB for locking
 3. **Add monitoring modules** - CloudWatch, Prometheus, Grafana
 4. **Create CI/CD integration** - GitHub Actions for Terraform
 5. **Deploy to AWS** - Apply Terraform to create infrastructure
@@ -369,6 +801,12 @@ terraform destroy -var-file=environments/development/terraform.tfvars
 - ✅ `terraform/outputs.tf`
 - ✅ `terraform/locals.tf`
 - ✅ `terraform/terraform.tfvars.example`
+- ✅ `terraform/vpc.tf` - VPC module instantiation
+- ✅ `terraform/eks.tf` - EKS module instantiation
+- ✅ `terraform/rds.tf` - RDS module instantiation
+- ✅ `terraform/ecr.tf` - ECR module instantiation
+- ✅ `terraform/Makefile` - Terraform operations automation
+- ✅ `terraform/validate.sh` - Terraform validation script
 - ✅ `terraform/modules/vpc/main.tf`
 - ✅ `terraform/modules/vpc/variables.tf`
 - ✅ `terraform/modules/vpc/outputs.tf`
