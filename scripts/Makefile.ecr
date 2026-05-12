@@ -1,0 +1,101 @@
+.PHONY: help setup login build push workflow verify cleanup
+
+# ECR Makefile
+# Provides convenient commands for ECR operations
+
+AWS_REGION ?= us-east-1
+AWS_ACCOUNT_ID ?= 671765845629
+IMAGE_TAG ?= latest
+VERSION ?= v1.0.0
+
+ECR_REGISTRY = $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+
+help:
+	@echo "ECR Operations"
+	@echo "=============="
+	@echo ""
+	@echo "Setup:"
+	@echo "  make setup              - Create ECR repositories"
+	@echo ""
+	@echo "Build & Push:"
+	@echo "  make login              - Login to ECR"
+	@echo "  make build              - Build Docker images"
+	@echo "  make push               - Push images to ECR"
+	@echo "  make workflow           - Complete workflow (login, build, push)"
+	@echo ""
+	@echo "Verify:"
+	@echo "  make verify             - Verify images in ECR"
+	@echo "  make list-api           - List API repository images"
+	@echo "  make list-frontend      - List Frontend repository images"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  make cleanup            - Delete all images and repositories"
+	@echo "  make cleanup-force      - Force delete repositories"
+	@echo ""
+	@echo "Variables:"
+	@echo "  AWS_REGION=$(AWS_REGION)"
+	@echo "  AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID)"
+	@echo "  IMAGE_TAG=$(IMAGE_TAG)"
+	@echo "  VERSION=$(VERSION)"
+	@echo ""
+
+setup:
+	@echo "Setting up ECR repositories..."
+	@bash ecr-setup.sh
+
+login:
+	@echo "Logging in to ECR..."
+	@bash ecr-login.sh
+
+build:
+	@echo "Building Docker images..."
+	@IMAGE_TAG=$(IMAGE_TAG) VERSION=$(VERSION) bash build-images.sh
+
+push:
+	@echo "Pushing images to ECR..."
+	@IMAGE_TAG=$(IMAGE_TAG) VERSION=$(VERSION) bash push-images.sh
+
+workflow:
+	@echo "Running complete ECR workflow..."
+	@IMAGE_TAG=$(IMAGE_TAG) VERSION=$(VERSION) bash ecr-complete-workflow.sh
+
+verify:
+	@echo "Verifying images in ECR..."
+	@echo ""
+	@echo "API Repository:"
+	@aws ecr describe-images \
+		--repository-name reservation-api \
+		--region $(AWS_REGION) \
+		--query 'imageDetails[*].[imageTags,imageSizeInBytes,imagePushedAt]' \
+		--output table
+	@echo ""
+	@echo "Frontend Repository:"
+	@aws ecr describe-images \
+		--repository-name reservation-frontend \
+		--region $(AWS_REGION) \
+		--query 'imageDetails[*].[imageTags,imageSizeInBytes,imagePushedAt]' \
+		--output table
+
+list-api:
+	@aws ecr describe-images \
+		--repository-name reservation-api \
+		--region $(AWS_REGION) \
+		--query 'imageDetails[*].[imageTags,imageSizeInBytes]' \
+		--output table
+
+list-frontend:
+	@aws ecr describe-images \
+		--repository-name reservation-frontend \
+		--region $(AWS_REGION) \
+		--query 'imageDetails[*].[imageTags,imageSizeInBytes]' \
+		--output table
+
+cleanup:
+	@echo "Cleaning up ECR repositories..."
+	@bash ecr-cleanup.sh
+
+cleanup-force:
+	@echo "Force cleaning up ECR repositories..."
+	@FORCE=true bash ecr-cleanup.sh
+
+.DEFAULT_GOAL := help
