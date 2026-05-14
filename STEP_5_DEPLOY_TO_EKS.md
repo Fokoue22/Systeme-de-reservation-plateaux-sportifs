@@ -9,23 +9,26 @@ This step focuses on deploying the Reservation System to Amazon EKS (Elastic Kub
 ### Helm Chart Structure
 
 ```
-helm/
-├── Chart.yaml                          # Chart metadata
-├── values.yaml                         # Default values
-├── templates/
-│   ├── _helpers.tpl                   # Template helpers
-│   ├── namespace.yaml                 # Kubernetes namespace
-│   ├── api-deployment.yaml            # API deployment
-│   ├── api-service.yaml               # API service
-│   ├── api-serviceaccount.yaml        # API service account
-│   ├── api-hpa.yaml                   # API horizontal pod autoscaler
-│   ├── frontend-deployment.yaml       # Frontend deployment
-│   ├── frontend-service.yaml          # Frontend service
-│   ├── frontend-serviceaccount.yaml   # Frontend service account
-│   ├── frontend-hpa.yaml              # Frontend horizontal pod autoscaler
-│   ├── ingress.yaml                   # Ingress for API and Frontend
-│   ├── networkpolicy.yaml             # Network policies
-│   └── rbac.yaml                      # RBAC roles and bindings
+.
+├── Chart.yaml                  # Chart metadata
+├── values.yaml               # Default values
+├── values-dev.yaml          # Development values
+├── values-prod.yaml         # Production values
+├── README.md                 # This file
+└── templates/
+    ├── _helpers.tpl         # Template helpers
+    ├── namespace.yaml       # Namespace
+    ├── api-deployment.yaml  # API deployment
+    ├── api-service.yaml     # API service
+    ├── api-serviceaccount.yaml
+    ├── api-hpa.yaml         # API autoscaler
+    ├── frontend-deployment.yaml
+    ├── frontend-service.yaml
+    ├── frontend-serviceaccount.yaml
+    ├── frontend-hpa.yaml    # Frontend autoscaler
+    ├── ingress.yaml         # Ingress
+    ├── networkpolicy.yaml   # Network policies
+    └── rbac.yaml            # RBAC
 ```
 
 ### Chart.yaml
