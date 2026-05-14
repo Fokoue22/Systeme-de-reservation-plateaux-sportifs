@@ -366,50 +366,5 @@ helm install reservation helm/ --dry-run --debug
 | `values.yaml` | Default configuration values |
 | `templates/_helpers.tpl` | Reusable template functions |
 
-### Kubernetes Resources
 
-| File | Purpose |
-|------|---------|
-| `namespace.yaml` | Kubernetes namespace |
-| `api-deployment.yaml` | API service deployment |
-| `api-service.yaml` | API service exposure |
-| `api-serviceaccount.yaml` | API RBAC service account |
-| `api-hpa.yaml` | API autoscaling |
-| `frontend-deployment.yaml` | Frontend service deployment |
-| `frontend-service.yaml` | Frontend service exposure |
-| `frontend-serviceaccount.yaml` | Frontend RBAC service account |
-| `frontend-hpa.yaml` | Frontend autoscaling |
-| `ingress.yaml` | External access configuration |
-| `networkpolicy.yaml` | Network security policies |
-| `rbac.yaml` | Role-based access control |
-
-## Best Practices Implemented
-
-1. **Security**
-   - Non-root user execution
-   - Read-only root filesystem
-   - Network policies
-   - RBAC
-
-2. **Reliability**
-   - Health probes
-   - Resource limits
-   - Autoscaling
-   - Multiple replicas
-
-3. **Maintainability**
-   - Clear template structure
-   - Reusable helpers
-   - Comprehensive values
-   - Environment-specific configs
-
-4. **Scalability**
-   - Horizontal Pod Autoscaler
-   - Resource-based scaling
-   - Configurable replicas
-
-5. **Observability**
-   - Prometheus annotations
-   - Health endpoints
-   - Structured logging
 
