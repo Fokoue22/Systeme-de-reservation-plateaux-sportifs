@@ -1,0 +1,225 @@
+# Default values for reservation-system Helm chart
+
+# Global configuration
+global:
+  environment: development
+  domain: reservation.local
+  registry: 671765845629.dkr.ecr.us-east-1.amazonaws.com
+  imagePullPolicy: IfNotPresent
+
+# API Service Configuration
+api:
+  enabled: true
+  name: reservation-api
+  replicaCount: 2
+  
+  image:
+    repository: reservation-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations: {}
+  
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: api.reservation.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: api-tls
+        hosts:
+          - api.reservation.local
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  livenessProbe:
+    httpGet:
+      path: /health/live
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  startupProbe:
+    httpGet:
+      path: /health/startup
+      port: 8000
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
+  
+  env:
+    - name: ENVIRONMENT
+      value: development
+    - name: LOG_LEVEL
+      value: INFO
+  
+  envFrom: []
+  
+  nodeSelector: {}
+  
+  tolerations: []
+  
+  affinity: {}
+
+# Frontend Service Configuration
+frontend:
+  enabled: true
+  name: reservation-frontend
+  replicaCount: 2
+  
+  image:
+    repository: reservation-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: reservation.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: frontend-tls
+        hosts:
+          - reservation.local
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  env: []
+  
+  envFrom: []
+  
+  nodeSelector: {}
+  
+  tolerations: []
+  
+  affinity: {}
+
+# PostgreSQL Database Configuration
+postgresql:
+  enabled: true
+  auth:
+    username: reservation_user
+    password: changeme
+    database: reservation_db
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+  
+  metrics:
+    enabled: true
+
+# Ingress Controller Configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+# Monitoring Configuration
+monitoring:
+  enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+
+# Logging Configuration
+logging:
+  enabled: false
+  elasticsearch:
+    enabled: false
+  kibana:
+    enabled: false
+
+# Security Configuration
+security:
+  networkPolicy:
+    enabled: true
+  podSecurityPolicy:
+    enabled: false
+  rbac:
+    enabled: true
+
+# Namespace Configuration
+namespace:
+  create: true
+  name: reservation-system

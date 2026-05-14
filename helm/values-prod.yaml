@@ -1,0 +1,129 @@
+# Production Environment Values
+
+global:
+  environment: production
+  domain: reservation.local
+  registry: 671765845629.dkr.ecr.us-east-1.amazonaws.com
+  imagePullPolicy: IfNotPresent
+
+api:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    tag: latest
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: api.reservation.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: api-tls-prod
+        hosts:
+          - api.reservation.local
+  
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - reservation-api
+          topologyKey: kubernetes.io/hostname
+
+frontend:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    tag: latest
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "200"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: reservation.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: frontend-tls-prod
+        hosts:
+          - reservation.local
+  
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - reservation-frontend
+          topologyKey: kubernetes.io/hostname
+
+namespace:
+  name: reservation-prod
+
+security:
+  networkPolicy:
+    enabled: true
+  rbac:
+    enabled: true
+
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+
+logging:
+  enabled: true
+  elasticsearch:
+    enabled: true
+  kibana:
+    enabled: true
