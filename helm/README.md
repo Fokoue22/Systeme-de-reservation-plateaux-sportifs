@@ -204,37 +204,6 @@ helm get manifest reservation -n reservation-dev
     └── rbac.yaml            # RBAC
 ```
 
-## Features
-
-### Security
-
-- Non-root user execution
-- Read-only root filesystem
-- Network policies
-- RBAC
-- Pod security context
-
-### Reliability
-
-- Health probes (liveness, readiness, startup)
-- Resource requests and limits
-- Horizontal Pod Autoscaler
-- Multiple replicas
-- Pod anti-affinity (production)
-
-### Scalability
-
-- Horizontal Pod Autoscaler
-- Resource-based scaling
-- Configurable min/max replicas
-- CPU and memory targets
-
-### Observability
-
-- Prometheus annotations
-- Health endpoints
-- Structured logging
-- Pod labels
 
 ## Troubleshooting
 
