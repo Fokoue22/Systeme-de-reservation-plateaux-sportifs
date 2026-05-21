@@ -10,6 +10,7 @@ from app.infrastructure.sqlite import SQLiteManager
 from app.api.deps import init_schema, get_notification_service
 from app.api.m1_routes import router as m1_router
 from app.api.m2_routes import router as m2_router
+from app.api.m3_routes import router as m3_router
 from app.api.m4_routes import router as m4_router
 from app.api.m5_auth_routes import router as m5_router
 from app.api.ui_routes import router as ui_router
@@ -33,6 +34,7 @@ app = FastAPI(
 # Include API routers
 app.include_router(m1_router)
 app.include_router(m2_router)
+app.include_router(m3_router)
 app.include_router(m4_router)
 app.include_router(m5_router)
 app.include_router(ui_router)
